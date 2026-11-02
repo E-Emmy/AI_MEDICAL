@@ -1,0 +1,65 @@
+[
+  {
+    "id": "chest-xray-normal",
+    "file": "chest-xray-normal.jpg",
+    "scan": "chest-xray",
+    "truth": "Normal",
+    "source": "Chest X-ray pneumonia dataset (Kermany et al.)",
+    "url": "https://huggingface.co/datasets/hf-vision/chest-xray-pneumonia",
+    "licence": "CC BY 4.0"
+  },
+  {
+    "id": "chest-xray-pneumonia",
+    "file": "chest-xray-pneumonia.jpg",
+    "scan": "chest-xray",
+    "truth": "Pneumonia",
+    "source": "Chest X-ray pneumonia dataset (Kermany et al.)",
+    "url": "https://huggingface.co/datasets/hf-vision/chest-xray-pneumonia",
+    "licence": "CC BY 4.0"
+  },
+  {
+    "id": "brain-mri-glioma",
+    "file": "brain-mri-glioma.jpg",
+    "scan": "brain-mri",
+    "truth": "Glioma",
+    "source": "Brain tumour MRI dataset (Masoud Nickparvar)",
+    "url": "https://huggingface.co/datasets/BJyotibrat/Masoud-Nickparvar-Brain-Tumor-MRI-Dataset",
+    "licence": "CC BY 4.0"
+  },
+  {
+    "id": "brain-mri-meningioma",
+    "file": "brain-mri-meningioma.jpg",
+    "scan": "brain-mri",
+    "truth": "Meningioma",
+    "source": "Brain tumour MRI dataset (Masoud Nickparvar)",
+    "url": "https://huggingface.co/datasets/BJyotibrat/Masoud-Nickparvar-Brain-Tumor-MRI-Dataset",
+    "licence": "CC BY 4.0"
+  },
+  {
+    "id": "brain-mri-notumor",
+    "file": "brain-mri-notumor.jpg",
+    "scan": "brain-mri",
+    "truth": "No tumour",
+    "source": "Brain tumour MRI dataset (Masoud Nickparvar)",
+    "url": "https://huggingface.co/datasets/BJyotibrat/Masoud-Nickparvar-Brain-Tumor-MRI-Dataset",
+    "licence": "CC BY 4.0"
+  },
+  {
+    "id": "chest-ct-adenocarcinoma",
+    "file": "chest-ct-adenocarcinoma.jpg",
+    "scan": "chest-ct",
+    "truth": "Adenocarcinoma",
+    "source": "Chest CT-scan images (Mohamed Hany)",
+    "url": "https://huggingface.co/datasets/Mahadih534/Chest_CT-Scan_images-Dataset",
+    "licence": "CC"
+  },
+  {
+    "id": "chest-ct-normal",
+    "file": "chest-ct-normal.jpg",
+    "scan": "chest-ct",
+    "truth": "Normal",
+    "source": "Chest CT-scan images (Mohamed Hany)",
+    "url": "https://huggingface.co/datasets/Mahadih534/Chest_CT-Scan_images-Dataset",
+    "licence": "CC"
+  }
+]

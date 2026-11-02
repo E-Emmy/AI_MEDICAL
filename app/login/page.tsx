@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import Logo from "@/components/Logo";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type Msg = { type: "err" | "ok"; text: string } | null;
 
@@ -46,15 +48,28 @@ export default function Login() {
   return (
     <div className="auth">
       <aside className="auth-brand">
-        <svg viewBox="0 0 320 320" aria-hidden="true">
-          <circle cx="160" cy="160" r="140" fill="none" stroke="#2B3A45" strokeWidth="2" />
-          <circle cx="160" cy="160" r="105" fill="none" stroke="#2B3A45" strokeWidth="2" />
-          <circle cx="160" cy="160" r="70" fill="none" stroke="#2EC4D6" strokeWidth="2" />
-          <circle cx="160" cy="160" r="35" fill="#18222A" stroke="#2B3A45" strokeWidth="2" />
-          <rect x="190" y="105" width="56" height="44" rx="4" fill="none" stroke="#FFB020" strokeWidth="3" />
-        </svg>
-        <h2>ScanLens</h2>
-        <p>Upload a CT scan, review what the AI model flags, and keep every result private to your account.</p>
+        <span className="brand"><Logo />ScanLens</span>
+        <div>
+          <h2>See what the model marks on your scans.</h2>
+          <p>Upload an X-ray or CT image, review the findings and the regions behind them, and keep every result private to your account.</p>
+        </div>
+        <div className="lightbox">
+          <div className="frame">
+            <svg viewBox="0 0 400 400" aria-hidden="true">
+              <ellipse cx="200" cy="205" rx="165" ry="120" fill="#7d8894" />
+              <ellipse cx="200" cy="205" rx="150" ry="106" fill="#5c6670" />
+              <ellipse cx="135" cy="195" rx="58" ry="78" fill="#0d1218" />
+              <ellipse cx="268" cy="195" rx="56" ry="76" fill="#0d1218" />
+              <ellipse cx="212" cy="215" rx="40" ry="36" fill="#97a2ad" />
+              <circle cx="200" cy="292" r="20" fill="#e6ecf2" />
+              <circle cx="200" cy="292" r="8" fill="#5c6670" />
+              <circle cx="118" cy="160" r="7" fill="#aab4be" />
+              <rect x="96" y="138" width="44" height="44" fill="none" stroke="#f2b84b" strokeWidth="2.5" />
+            </svg>
+            <span className="ov tl">Example scan</span>
+            <span className="ov bl">Axial CT, chest</span>
+          </div>
+        </div>
       </aside>
 
       <section className="auth-form">
@@ -82,10 +97,12 @@ export default function Login() {
 
           {msg && <p className={msg.type === "err" ? "auth-msg err" : "auth-msg ok"} role="alert">{msg.text}</p>}
 
-          <button className="primary" type="submit" disabled={busy}>
+          <button className="btn" type="submit" disabled={busy}>
             {busy ? "Please wait…" : mode === "in" ? "Sign in" : "Create account"}
           </button>
         </form>
+        <p className="auth-note">Decision support only. Results are not a diagnosis and must be reviewed by a qualified clinician.</p>
+        <div style={{ marginTop: 16 }}><ThemeToggle /></div>
       </section>
     </div>
   );

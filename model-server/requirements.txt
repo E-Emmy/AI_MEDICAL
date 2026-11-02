@@ -1,0 +1,8 @@
+# Pinned for Intel Macs: PyTorch stopped shipping x86_64 macOS wheels after 2.2.2.
+torch==2.2.2
+numpy<2
+transformers==4.46.3
+safetensors>=0.4.3
+pillow>=10.0
+sentencepiece==0.2.0  # SigLIP tokenizer for the scan-type check
+protobuf>=4,<6  # also needed by the SigLIP tokenizer
