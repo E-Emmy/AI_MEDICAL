@@ -61,5 +61,68 @@
     "source": "Chest CT-scan images (Mohamed Hany)",
     "url": "https://huggingface.co/datasets/Mahadih534/Chest_CT-Scan_images-Dataset",
     "licence": "CC"
+  },
+  {
+    "id": "chest-xray-tuberculosis",
+    "file": "chest-xray-tuberculosis.jpg",
+    "scan": "chest-xray",
+    "truth": "Tuberculosis",
+    "source": "Chest X-ray TB, pneumonia and normal (compiled from public sets)",
+    "url": "https://huggingface.co/datasets/realsudarshan/chest-xray-tb-pneumonia",
+    "licence": "CC BY 4.0"
+  },
+  {
+    "id": "retina-photo-moderate-dr",
+    "file": "retina-photo-moderate-dr.jpg",
+    "scan": "retina-photo",
+    "truth": "Moderate diabetic retinopathy",
+    "source": "EyePACS diabetic retinopathy photos (Kaggle 2015)",
+    "url": "https://huggingface.co/datasets/bumbledeep/eyepacs",
+    "licence": "MIT (as listed on the Hugging Face copy)"
+  },
+  {
+    "id": "retina-photo-no-dr",
+    "file": "retina-photo-no-dr.jpg",
+    "scan": "retina-photo",
+    "truth": "No diabetic retinopathy",
+    "source": "EyePACS diabetic retinopathy photos (Kaggle 2015)",
+    "url": "https://huggingface.co/datasets/bumbledeep/eyepacs",
+    "licence": "MIT (as listed on the Hugging Face copy)"
+  },
+  {
+    "id": "skin-photo-melanoma",
+    "file": "skin-photo-melanoma.jpg",
+    "scan": "skin-photo",
+    "truth": "Melanoma",
+    "source": "HAM10000 dermatoscopic images (Tschandl et al.)",
+    "url": "https://huggingface.co/datasets/marmal88/skin_cancer",
+    "licence": "CC BY-NC 4.0"
+  },
+  {
+    "id": "skin-photo-nevus",
+    "file": "skin-photo-nevus.jpg",
+    "scan": "skin-photo",
+    "truth": "Mole (melanocytic nevus)",
+    "source": "HAM10000 dermatoscopic images (Tschandl et al.)",
+    "url": "https://huggingface.co/datasets/marmal88/skin_cancer",
+    "licence": "CC BY-NC 4.0"
+  },
+  {
+    "id": "knee-xray-kl3",
+    "file": "knee-xray-kl3.jpg",
+    "scan": "knee-xray",
+    "truth": "Kellgren-Lawrence grade 3",
+    "source": "Knee osteoarthritis severity grading dataset (Chen, from the OAI)",
+    "url": "https://huggingface.co/datasets/SilpaCS/kneeosteoarthritis",
+    "licence": "CC BY 4.0"
+  },
+  {
+    "id": "knee-xray-kl0",
+    "file": "knee-xray-kl0.jpg",
+    "scan": "knee-xray",
+    "truth": "Kellgren-Lawrence grade 0",
+    "source": "Knee osteoarthritis severity grading dataset (Chen, from the OAI)",
+    "url": "https://huggingface.co/datasets/SilpaCS/kneeosteoarthritis",
+    "licence": "CC BY 4.0"
   }
 ]

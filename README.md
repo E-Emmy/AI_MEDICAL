@@ -1,18 +1,24 @@
 # ScanLens
 
-ScanLens is a web app that analyses medical scans (chest X-rays, bone X-rays, brain MRI and chest CT) with open AI models. You upload a scan, it checks what kind of scan it is, runs every test made for that scan type, and shows the results with a heatmap of where each model looked. A clinician can then agree or disagree with each result.
+ScanLens is a web app that analyses medical images (chest X-rays, bone and knee X-rays, brain MRI, chest CT, retina photos and skin lesion photos) with open AI models. You upload a scan, it checks what kind of scan it is, runs every test made for that scan type, and shows the results with a heatmap of where each model looked. A clinician can then agree or disagree with each result.
 
 It is decision support for research and demos, not a diagnostic device. The models are small open models from Hugging Face and make mistakes; every result needs a qualified person to review it.
 
 ## What it does
 
 - **Upload** a PNG, JPG or uncompressed DICOM, or pick one of the built-in sample scans from public datasets.
+- **DICOM:** single and multi-frame files, a frame slider, CT viewing windows (lung, soft tissue, bone, brain), the header facts that matter (modality, body part, slice thickness, pixel spacing), and identifying header fields (name, ID, dates, hospital, staff) blanked in the copy that gets uploaded.
 - **Crop and cover text** before uploading, so names, dates and ID numbers never leave the browser.
-- **Scan check:** works out whether the image is a chest X-ray, bone X-ray, brain MRI, chest CT or something else, and refuses to run a test on the wrong kind of image.
-- **Tests:** six models (pneumonia, COVID-19, 14 chest conditions, bone fracture, brain tumour, lung cancer). Run one, or let the app run every test that matches the scan.
+- **Scan check:** works out whether the image is a chest X-ray, bone X-ray, knee X-ray, brain MRI, chest CT, retina photo, skin lesion photo or something else, and refuses to run a test on the wrong kind of image.
+- **Tests:** ten models (pneumonia, COVID-19, 14 chest conditions, tuberculosis, bone fracture, knee osteoarthritis grade, brain tumour, lung cancer, diabetic retinopathy, skin lesions). Run one, or let the app run every test that matches the scan. Each test's description in the app states its known limits.
 - **Heatmaps:** circles up to three areas that most changed each model's answer, and warns when no single area explains the result.
 - **Clinician review:** Agree / Disagree / Unsure with a note on each result.
-- **Dashboard:** past scans, results and confidence, in light or dark mode.
+- **Zoom:** click a scan to open it full screen; scroll, pinch, drag, or show exact pixels. The image is only enlarged, never AI-upscaled, because upscaling can invent detail.
+- **Patient cases:** group a patient's scans under an anonymous reference, see them on a timeline, and compare any two side by side with what changed between them.
+- **Report PDF:** a one-page report with the scan, heatmap, results, reviews and a plain-language summary, saved through the browser's Save as PDF.
+- **Second opinion:** a read-only share link to one scan, its results and reviews, valid for 7 days and revocable.
+- **Plain-language summary:** fixed, reviewed sentences that explain each result for a patient, ready to copy.
+- **Overview:** the latest scan, results waiting for review, and how often clinicians agreed with the models, in light or dark mode.
 
 ## How it fits together
 
@@ -22,7 +28,7 @@ Browser (Next.js pages)
    ▼
 Next.js API routes (app/api/*)          Supabase
    │  downloads the image, forwards it   ├─ Auth (email + password)
-   ▼                                     ├─ Postgres: analyses, reviews (row-level security)
+   ▼                                     ├─ Postgres: analyses, reviews, cases, shares
 Python model server (model-server/)     └─ Storage: private "scans" bucket
    │  scan check (MedSigLIP) → tests (ViT/Swin classifiers) → heatmaps
    ▼
@@ -39,7 +45,7 @@ More detail, including how to add a new test, is in [docs/HOW-IT-WORKS.md](docs/
 | Accounts and data | Supabase: Auth, Postgres with row-level security, Storage |
 | DICOM | `dicom-parser`, converted to PNG in the browser |
 | Model server | Python 3.9+, PyTorch (2.2 on Intel Macs, 2.9 elsewhere), Hugging Face `transformers` 4.57, Pillow; standard-library HTTP server locally, Gradio on Hugging Face Spaces |
-| Models | Google MedSigLIP-448 (scan check) and six open classifiers from Hugging Face (listed in `model-server/server.py`) |
+| Models | Google MedSigLIP-448 (scan check) and ten open classifiers from Hugging Face (listed in `model-server/server.py`) |
 
 ## Setting it up
 
@@ -54,10 +60,10 @@ npm install
 ### 2. Set up Supabase
 
 1. Create a project at supabase.com.
-2. Open **SQL Editor → New query**, paste the whole of `supabase/schema.sql`, and run it. This creates the `analyses` and `reviews` tables, their security rules, and the private `scans` storage bucket.
+2. Open **SQL Editor → New query**, paste the whole of `supabase/schema.sql`, and run it. This creates the `analyses`, `reviews`, `cases` and `shares` tables, their security rules, the function behind share links, and the private `scans` storage bucket.
 3. In **Authentication → Providers → Email**, either keep email confirmation on (new users must click a link) or turn it off for quick local testing.
 
-If your project was created from an older `schema.sql`, run `supabase/migrations/002_reviews_and_delete.sql` instead of the whole file.
+If your project was created from an older `schema.sql`, run only the migrations it's missing, in order: `supabase/migrations/002_reviews_and_delete.sql`, then `003_cases_and_shares.sql`. Without 003 the app still analyses scans, but cases and share links stay switched off.
 
 ### 3. Get a Hugging Face token
 
@@ -108,14 +114,20 @@ and the plan for the competition are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 ```
 app/
-  page.tsx              Dashboard: recent scans and all results
-  upload/page.tsx       Upload, crop/cover, sample gallery, choose a test
-  scan/[id]/page.tsx    Results for one scan: heatmaps, reviews, delete
+  page.tsx              Overview: latest scan, review queue, agreement, all results
+  upload/page.tsx       Upload, DICOM frames and windows, crop/cover, samples, case, choose a test
+  scan/[id]/page.tsx    One scan: results, heatmaps, reviews, summary, case, share, delete
+  scan/[id]/report/     Printable report (Save as PDF)
+  cases/                Patient cases, timeline and side-by-side comparison
+  share/[token]/        Read-only shared scan, no sign-in
   login/page.tsx        Sign in and sign up
   api/analyze/route.ts  Sends an uploaded scan to the model server and saves the results
   api/tests/route.ts    Lists the tests the model server offers
-components/             UI pieces (ScanImage draws scans, marks and heatmaps; ImageEditor crops and covers)
-lib/                    Supabase client, session hook, DICOM conversion, formatting, shared types
+components/             UI pieces (Stage is the scan with floating readouts; ScanImage draws scans, marks and
+                        heatmaps; ZoomView is the full-screen zoom; ImageEditor crops and covers)
+lib/                    Supabase client, session hook, DICOM reading, formatting, shared types
+  analysis.ts           Loads a scan's results, reviews and case; also for share links
+  summary.ts            The plain-language patient summary
   modelServer.ts        Calls the model server, locally over HTTP or on Hugging Face Spaces
 model-server/
   server.py             The model server: scan check, tests, heatmaps

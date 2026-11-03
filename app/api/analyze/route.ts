@@ -6,6 +6,8 @@ import { findSample } from "@/lib/samples";
 
 export const maxDuration = 60;
 
+const str = (v: unknown) => (typeof v === "string" ? v.slice(0, 120) : undefined);
+
 export async function POST(req: NextRequest) {
   const token = req.headers.get("authorization")?.replace("Bearer ", "");
   if (!token) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
@@ -17,7 +19,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await sb.auth.getUser(token);
   if (!user) return NextResponse.json({ error: "Invalid session" }, { status: 401 });
 
-  const { imagePath, dicomPath, testId, sampleId } = await req.json();
+  const { imagePath, dicomPath, testId, sampleId, caseId, dicom } = await req.json();
   // Only known sample ids are kept, so the stored "known answer" can't be made up by the client.
   const found = findSample(sampleId);
   const sample = found ? { id: found.id, truth: found.truth, source: found.source, url: found.url } : undefined;
@@ -27,6 +29,21 @@ export async function POST(req: NextRequest) {
   if (typeof testId !== "string" || !/^[a-z0-9-]+$/.test(testId)) {
     return NextResponse.json({ error: "Choose a test before analysing." }, { status: 400 });
   }
+
+  // RLS only shows your own cases, so this also stops filing a scan under someone else's case.
+  if (caseId != null) {
+    const { data: found } = await sb.from("cases").select("id").eq("id", caseId).maybeSingle();
+    if (!found) return NextResponse.json({ error: "That case doesn't exist. Choose another case or none." }, { status: 400 });
+  }
+  // Only plain header facts are kept; readDicom never returns identifying fields.
+  const dicomInfo = dicom && typeof dicom === "object" ? {
+    modality: str(dicom.modality), bodyPart: str(dicom.bodyPart), description: str(dicom.description),
+    manufacturer: str(dicom.manufacturer), rows: Number(dicom.rows) || 0, cols: Number(dicom.cols) || 0,
+    frames: Number(dicom.frames) || 1, frame: Number(dicom.frame) || 0,
+    sliceThickness: Number(dicom.sliceThickness) || undefined, pixelSpacing: str(dicom.pixelSpacing),
+    window: dicom.window && isFinite(dicom.window.center) && isFinite(dicom.window.width)
+      ? { center: Number(dicom.window.center), width: Number(dicom.window.width) } : undefined,
+  } : undefined;
 
   const { data: file, error: dlErr } = await sb.storage.from("scans").download(imagePath);
   if (dlErr || !file) return NextResponse.json({ error: "Could not read the uploaded image" }, { status: 404 });
@@ -51,12 +68,14 @@ export async function POST(req: NextRequest) {
     return {
       image_path: imagePath,
       dicom_path: dicomPath ?? null,
+      // Left out when unset, so analysing still works before migration 003 adds the column.
+      ...(caseId ? { case_id: caseId } : {}),
       model: result.model ?? "unknown",
       top_label: predictions[0]?.label ?? null,
       top_score: predictions[0]?.score ?? null,
       predictions,
       regions,
-      raw: { ...result, scan_check: body.scan_check, sample },
+      raw: { ...result, scan_check: body.scan_check, sample, dicom: dicomInfo },
     };
   });
 

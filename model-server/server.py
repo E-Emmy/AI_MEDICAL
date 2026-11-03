@@ -51,13 +51,16 @@ SECRET = os.environ.get("MODEL_SERVER_SECRET")
 DEVICE = os.environ.get("DEVICE", "cpu")
 MAX_BYTES = 25 * 1024 * 1024
 
-# What the scan-type check can recognise. Only the first four have tests; the rest
+# What the scan-type check can recognise. Only the types in references.json have tests; the rest
 # exist so other images have somewhere to land instead of being forced into a test.
 SCANS = {
     "chest-xray": "a chest X-ray radiograph, a front view of the whole chest showing the ribs, both lungs, the heart and the collarbones",
     "bone-xray": "an X-ray of a bone, hand, wrist, arm, leg or joint",
+    "knee-xray": "an X-ray of the knee joint, showing the end of the thigh bone above the shin bone with the joint space between them",
     "brain-mri": "an MRI scan of the brain",
     "chest-ct": "a chest CT scan, a cross-sectional slice through the body seen from below, showing both lungs as dark ovals beside the spine",
+    "retina-photo": "a retinal fundus photograph, a round orange-red image of the back of the eye showing the optic disc and blood vessels",
+    "skin-photo": "a dermatoscope close-up photograph of a mole or skin lesion",
     "head-ct": "a CT scan of the head",
     "abdomen-ct": "a CT scan of the abdomen",
     "ultrasound": "an ultrasound image",
@@ -69,9 +72,13 @@ SCAN_NAMES = {
     "chest-xray": "chest X-ray", "bone-xray": "bone X-ray", "brain-mri": "brain MRI", "chest-ct": "chest CT",
     "head-ct": "head CT", "abdomen-ct": "abdominal CT", "ultrasound": "ultrasound", "dental-xray": "dental X-ray",
     "photo": "photograph", "document": "screenshot or document",
+    "knee-xray": "knee X-ray", "retina-photo": "retina photo", "skin-photo": "skin lesion photo",
 }
+# Colour photographs rather than scans: never split into slices.
+PHOTO_SCANS = {"retina-photo", "skin-photo"}
 
 # scoring: "softmax" for models that pick one label, "sigmoid" for models that score each label on its own.
+# Optional "scans": every scan type a test accepts, when more than its main "scan".
 TESTS = {
     "chest-xray-pneumonia": {
         "name": "Pneumonia", "scan": "chest-xray", "scoring": "softmax",
@@ -90,10 +97,44 @@ TESTS = {
         "model": "Sohaibsoussi/ViT-NIH-Chest-X-ray-dataset-small", "revision": "main",
         "about": "Scores each of 14 conditions separately, such as effusion, nodule and cardiomegaly.",
     },
+    "chest-xray-tb": {
+        "name": "Tuberculosis", "scan": "chest-xray", "scoring": "softmax",
+        "model": "runaksh/chest_xray_tuberculosis_detection", "revision": "main",
+        # Uploaded without its image settings; it was fine-tuned from this model, so it uses its settings.
+        "processor": "google/vit-base-patch16-224-in21k",
+        "about": "Normal or tuberculosis. Only knows these two, so other lung disease can show as tuberculosis: "
+                 "in testing it called 3 of 15 pneumonia X-rays tuberculosis.",
+    },
     "bone-xray-fracture": {
+        # Not offered for knee X-rays: in testing it called 11 of 24 knees with no known fracture fractured.
         "name": "Bone fracture", "scan": "bone-xray", "scoring": "softmax",
         "model": "prithivMLmods/Bone-Fracture-Detection", "revision": "main",
         "about": "Fractured or not fractured.",
+    },
+    "knee-xray-oa": {
+        "name": "Knee osteoarthritis", "scan": "knee-xray", "scoring": "softmax",
+        "model": "thanhle829/kneexpert-xray-kl", "revision": "bf9e73749478e69e372c6b10e0d02b9b0c7cd786",
+        # Published for the timm library; loaded by _timm_convnext instead.
+        "loader": "timm-convnext", "file": "convnext_tiny_weighted_smoothed",
+        "labels": {"KL0": "KL 0 (none)", "KL1": "KL 1 (doubtful)", "KL2": "KL 2 (mild)",
+                   "KL3": "KL 3 (moderate)", "KL4": "KL 4 (severe)"},
+        "about": "Kellgren-Lawrence grade 0 to 4 on a front-view knee X-ray. Trained on close crops of the knee "
+                 "joint; often one grade off, especially between grades 0, 1 and 2.",
+    },
+    "retina-photo-dr": {
+        "name": "Diabetic retinopathy", "scan": "retina-photo", "scoring": "softmax", "color": True,
+        "model": "nadahh/APTOS2019DetectionViaLLMMConvNextV2", "revision": "main",
+        "labels": {"0": "No DR", "1": "Mild", "2": "Moderate", "3": "Severe", "4": "Proliferative DR"},
+        "about": "No diabetic retinopathy, or mild, moderate, severe or proliferative. Trained on one clinic's "
+                 "photos (APTOS 2019); on other photos it told retinopathy from none well but often got the grade wrong.",
+    },
+    "skin-photo-lesion": {
+        "name": "Skin lesion", "scan": "skin-photo", "scoring": "softmax", "color": True,
+        "model": "spycoder/vit-base-patch16-224-in21k-enhanced-ham10000", "revision": "main",
+        "labels": {"akiec": "Actinic keratosis", "bcc": "Basal cell carcinoma", "bkl": "Benign keratosis",
+                   "df": "Dermatofibroma", "mel": "Melanoma", "nv": "Mole (melanocytic nevus)", "vasc": "Vascular lesion"},
+        "about": "Seven kinds of skin lesion, including melanoma, basal cell carcinoma and moles. Made for "
+                 "dermatoscope close-ups; much less accurate on images from other clinics, and not for ordinary photos.",
     },
     "brain-mri-tumour": {
         "name": "Brain tumour", "scan": "brain-mri", "scoring": "softmax",
@@ -113,6 +154,9 @@ GATE_MODEL = os.environ.get("GATE_MODEL", "google/medsiglip-448")
 # In testing, real scans matched their type at 0.60-0.93 similarity and a screenshot of a scan at 0.53.
 # Below this the image isn't clearly any scan type, so no test runs.
 MIN_SCAN_SCORE = float(os.environ.get("MIN_SCAN_SCORE", "0.58"))
+# Fundus photos vary more in colour and framing than scans: real ones matched their type at 0.54-0.84,
+# while everyday photos stayed below 0.36 and every other scan type below 0.45.
+MIN_SCAN_SCORES = {"retina-photo": 0.5}
 # Text descriptions still catch scan types that have no tests (ultrasound, head CT...) when confident.
 MIN_OTHER_TEXT_SCORE = 0.5
 REFERENCES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "references.json")
@@ -156,7 +200,7 @@ class ScanTypeCheck:
         if text_scan not in self.refs and text_score >= MIN_OTHER_TEXT_SCORE:
             return {"scan": text_scan, "name": SCAN_NAMES[text_scan], "score": text_score, "clear": True}
         scan, score = max(((k, float(v @ ref)) for k, ref in self.refs.items()), key=lambda x: x[1])
-        return {"scan": scan, "name": SCAN_NAMES[scan], "score": round(score, 3), "clear": score >= MIN_SCAN_SCORE}
+        return {"scan": scan, "name": SCAN_NAMES[scan], "score": round(score, 3), "clear": score >= MIN_SCAN_SCORES.get(scan, MIN_SCAN_SCORE)}
 
 
 _pipes = {}
@@ -173,9 +217,62 @@ def _load(key):
             else:
                 t = TESTS[key]
                 print(f"Loading {key} ({t['model']} @ {t['revision']}) ...", flush=True)
-                _pipes[key] = pipeline("image-classification", model=t["model"], revision=t["revision"], device=DEVICE, model_kwargs={"use_safetensors": True})
+                if t.get("loader") == "timm-convnext":
+                    _pipes[key] = _timm_convnext(t)
+                else:
+                    # "processor": a repo to take the image preprocessing from, for a model uploaded without its own.
+                    extra = {"image_processor": t["processor"]} if t.get("processor") else {}
+                    _pipes[key] = pipeline("image-classification", model=t["model"], revision=t["revision"], device=DEVICE,
+                                           model_kwargs={"use_safetensors": True}, **extra)
             print(f"Ready: {key}", flush=True)
         return _pipes[key]
+
+
+def _timm_convnext(t):
+    """A pipeline for a ConvNeXt-tiny trained with timm and published as bare safetensors.
+
+    Its weights are renamed to the transformers ConvNeXt layout, so timm itself isn't needed.
+    """
+    import re
+    from huggingface_hub import hf_hub_download
+    from safetensors.torch import load_file
+    from transformers import ConvNextConfig, ConvNextForImageClassification, ConvNextImageProcessor
+
+    meta_path = hf_hub_download(t["model"], f"{t['file']}.json", revision=t["revision"])
+    with open(meta_path) as f:
+        meta = json.load(f)
+    weights = load_file(hf_hub_download(t["model"], f"{t['file']}.safetensors", revision=t["revision"]))
+    renames = [
+        (r"^stem\.0\.", "convnext.embeddings.patch_embeddings."),
+        (r"^stem\.1\.", "convnext.embeddings.layernorm."),
+        (r"^stages\.(\d+)\.downsample\.", r"convnext.encoder.stages.\1.downsampling_layer."),
+        (r"^stages\.(\d+)\.blocks\.(\d+)\.conv_dw\.", r"convnext.encoder.stages.\1.layers.\2.dwconv."),
+        (r"^stages\.(\d+)\.blocks\.(\d+)\.norm\.", r"convnext.encoder.stages.\1.layers.\2.layernorm."),
+        (r"^stages\.(\d+)\.blocks\.(\d+)\.mlp\.fc1\.", r"convnext.encoder.stages.\1.layers.\2.pwconv1."),
+        (r"^stages\.(\d+)\.blocks\.(\d+)\.mlp\.fc2\.", r"convnext.encoder.stages.\1.layers.\2.pwconv2."),
+        (r"^stages\.(\d+)\.blocks\.(\d+)\.gamma$", r"convnext.encoder.stages.\1.layers.\2.layer_scale_parameter"),
+        (r"^head\.norm\.", "convnext.layernorm."),
+        (r"^head\.fc\.", "classifier."),
+    ]
+    state = {}
+    for k, v in weights.items():
+        for pattern, new in renames:
+            k = re.sub(pattern, new, k)
+        state[k] = v
+    # The publisher's calibration: logits / temperature, folded into the last layer.
+    temperature = float(meta.get("temperature", 1.0))
+    state["classifier.weight"] = state["classifier.weight"] / temperature
+    state["classifier.bias"] = state["classifier.bias"] / temperature
+    labels = meta["classes"]
+    config = ConvNextConfig(depths=[3, 3, 9, 3], hidden_sizes=[96, 192, 384, 768], num_labels=len(labels),
+                            id2label=dict(enumerate(labels)), label2id={l: i for i, l in enumerate(labels)})
+    model = ConvNextForImageClassification(config).eval()
+    model.load_state_dict(state, strict=True)
+    # Resize the short side and centre-crop a square, keeping proportions: trained on square crops of
+    # the joint, it graded wider knee images better this way than squeezed to a square.
+    processor = ConvNextImageProcessor(size={"shortest_edge": meta["input_size"]}, crop_pct=1.0,
+                                       image_mean=meta["normalize"]["mean"], image_std=meta["normalize"]["std"])
+    return pipeline("image-classification", model=model, image_processor=processor, device=DEVICE)
 
 
 def _preload():
@@ -203,8 +300,32 @@ def _test_info(test_id):
     return {"id": test_id, "name": t["name"], "scan": t["scan"], "scan_name": SCAN_NAMES[t["scan"]]}
 
 
+def _scans(t):
+    """Every scan type a test accepts; "scan" is the main one, shown in list_tests."""
+    return t.get("scans", [t["scan"]])
+
+
+def _slices(image, scan):
+    """Photos are never grids of slices; a dark fundus border or skin folds could look like one."""
+    return None if scan in PHOTO_SCANS else find_slices(image)
+
+
+def _prepare(t, image):
+    # Scans are grayscale; tinted stock images (blue X-rays, pink-highlighted tumours) fooled the
+    # models in testing, and grayscale versions of the same images were read correctly.
+    # Colour photos (retina, skin) keep their colour: it is much of what those models read.
+    return image.convert("RGB") if t.get("color") else image.convert("L").convert("RGB")
+
+
+def _label(t, label):
+    """The label to show: some models name their classes with codes such as "nv", "2" or "KL3"."""
+    return t.get("labels", {}).get(label, label)
+
+
 # Top labels that mean "nothing found"; there is nothing to point at, so no heatmap is made for them.
-NORMAL_LABELS = {"normal", "no finding", "no tumor", "not fractured", "negative"}
+# Compared after "labels" renames, so these are the names shown, lower-cased. The skin test has no
+# "nothing found" answer: every label is a kind of lesion.
+NORMAL_LABELS = {"normal", "no finding", "no tumor", "not fractured", "negative", "no dr", "kl 0 (none)"}
 
 # Occlusion heatmap: grey out a PATCH x PATCH block of an 8 x 8 grid at every position and
 # measure how much the model's evidence for its finding drops. Big drops mark where it looked.
@@ -326,8 +447,9 @@ def _classify_slices(test_id, image, boxes):
     """Run a test on each slice of a grid and box the slices with a finding."""
     t = TESTS[test_id]
     clf = _load(test_id)
-    crops = [image.crop(b).convert("L").convert("RGB") for b in boxes]
+    crops = [_prepare(t, image.crop(b)) for b in boxes]
     per_slice = clf(crops, function_to_apply=t["scoring"], top_k=len(clf.model.config.id2label))
+    per_slice = [[{"label": _label(t, p["label"]), "score": p["score"]} for p in r] for r in per_slice]
     flagged = [(b, r) for b, r in zip(boxes, per_slice) if r[0]["label"].lower() not in NORMAL_LABELS]
     if flagged:
         # The overall answer is the most confident flagged slice.
@@ -356,16 +478,16 @@ def _classify(test_id, image, slices=None):
         return _classify_slices(test_id, image, slices)
     t = TESTS[test_id]
     clf = _load(test_id)
-    # Scans are grayscale; tinted stock images (blue X-rays, pink-highlighted tumours) fooled the
-    # models in testing, and grayscale versions of the same images were read correctly.
-    image = image.convert("L").convert("RGB")
+    image = _prepare(t, image)
     results = clf(image, function_to_apply=t["scoring"], top_k=len(clf.model.config.id2label))
     top = results[0]["label"]
-    finding = top.lower() not in NORMAL_LABELS
+    finding = _label(t, top).lower() not in NORMAL_LABELS
     heatmap = occlusion_heatmap(clf, image, top, t["scoring"]) if finding else None
+    if heatmap:
+        heatmap["label"] = _label(t, top)
     return {
         "test": _test_info(test_id), "model": t["model"],
-        "predictions": [{"label": r["label"], "score": float(r["score"])} for r in results],
+        "predictions": [{"label": _label(t, r["label"]), "score": float(r["score"])} for r in results],
         "heatmap": heatmap,
         # A finding that no area of the scan explains: the model is reacting to the whole image
         # (contrast, style, source), which in testing went with unreliable results.
@@ -386,13 +508,14 @@ def run_test(test_id, image):
     scan = detect_scan(image)
     if not scan["clear"]:
         return _unclear(scan)
-    if scan["scan"] != t["scan"]:
+    if scan["scan"] not in _scans(t):
+        needs = " or ".join(SCAN_NAMES[s] for s in _scans(t))
         return 422, {
-            "error": f"This looks like a {scan['name']}, but the {t['name']} test needs a {SCAN_NAMES[t['scan']]}. "
-                     f"Choose a test for {scan['name']} scans, or upload a {SCAN_NAMES[t['scan']]}.",
+            "error": f"This looks like a {scan['name']}, but the {t['name']} test needs a {needs}. "
+                     f"Choose a test for {scan['name']} scans, or upload a {needs}.",
             "test": _test_info(test_id), "scan_check": scan,
         }
-    return 200, {"results": [_classify(test_id, image, find_slices(image))], "scan_check": scan}
+    return 200, {"results": [_classify(test_id, image, _slices(image, scan["scan"]))], "scan_check": scan}
 
 
 def run_matching(image):
@@ -400,15 +523,15 @@ def run_matching(image):
     scan = detect_scan(image)
     if not scan["clear"]:
         return _unclear(scan)
-    matching = [k for k, t in TESTS.items() if t["scan"] == scan["scan"]]
+    matching = [k for k, t in TESTS.items() if scan["scan"] in _scans(t)]
     if not matching:
-        have = sorted({SCAN_NAMES[t["scan"]] for t in TESTS.values()})
+        have = sorted({SCAN_NAMES[s] for t in TESTS.values() for s in _scans(t)})
         return 422, {
             "error": f"This looks like a {scan['name']}. ScanLens doesn't have a test for that yet. "
                      f"It has tests for {', '.join(have[:-1])} and {have[-1]} scans.",
             "scan_check": scan,
         }
-    slices = find_slices(image)
+    slices = _slices(image, scan["scan"])
     return 200, {"results": [_classify(k, image, slices) for k in matching], "scan_check": scan}
 
 

@@ -24,6 +24,11 @@ SOURCES = {
     "chest-ct": ["Mahadih534/Chest_CT-Scan_images-Dataset"],
     "bone-xray": ["Hemg/bone-fracture-detection"],
     "brain-mri": ["BJyotibrat/Masoud-Nickparvar-Brain-Tumor-MRI-Dataset", "Mahadih534/brain-tumor-MRI-dataset"],
+    # Tight crops of the knee joint (the osteoarthritis grading set) and whole knee X-rays.
+    "knee-xray": ["SilpaCS/kneeosteoarthritis", "Mary-m007/knee_classification01"],
+    "retina-photo": ["bumbledeep/aptos", "bumbledeep/eyepacs"],
+    # Dermatoscope images: the skin test was trained on these, not on ordinary photos of skin.
+    "skin-photo": ["marmal88/skin_cancer", "MedOtter/ISIC2017"],
 }
 PER_DATASET = 6
 HERE = Path(__file__).parent

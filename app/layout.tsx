@@ -1,10 +1,10 @@
 import "./globals.css";
-import { Instrument_Sans } from "next/font/google";
+import { Outfit } from "next/font/google";
 import Header from "@/components/Header";
 
-const sans = Instrument_Sans({ subsets: ["latin"], axes: ["wdth"], variable: "--font-sans" });
+const sans = Outfit({ subsets: ["latin"], variable: "--font-sans" });
 
-export const metadata = { title: "ScanLens", description: "AI-assisted analysis of X-ray and CT images" };
+export const metadata = { title: "ScanLens", description: "AI-assisted analysis of medical scans, for clinicians" };
 
 // Applies the saved theme before first paint so the page doesn't flash the wrong colours.
 const themeScript = `try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;

@@ -15,5 +15,5 @@ export type Heatmap = {
 };
 
 // Top labels that mean "nothing found". Matches NORMAL_LABELS in model-server/server.py.
-const NORMAL = new Set(["normal", "no finding", "no tumor", "not fractured", "negative"]);
+const NORMAL = new Set(["normal", "no finding", "no tumor", "not fractured", "negative", "no dr", "kl 0 (none)"]);
 export const isNormal = (label: string | null | undefined) => label != null && NORMAL.has(label.toLowerCase());

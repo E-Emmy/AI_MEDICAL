@@ -1,9 +1,7 @@
 "use client";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-
-export type Verdict = "agree" | "disagree" | "unsure";
-export type ReviewRow = { analysis_id: string; verdict: Verdict; note: string | null; updated_at: string };
+import type { ReviewRow, Verdict } from "@/lib/analysis";
 
 const VERDICTS: [Verdict, string][] = [["agree", "Agree"], ["disagree", "Disagree"], ["unsure", "Unsure"]];
 
