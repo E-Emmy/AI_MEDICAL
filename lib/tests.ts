@@ -5,8 +5,6 @@ export type Test = { id: string; name: string; scan: string; scan_name: string; 
 export type TestInfo = { id: string; name: string; scan: string; scan_name: string };
 export type ScanCheck = { scan: string; name: string; score: number };
 
-export const modelServerUrl = () => (process.env.MODEL_SERVER_URL ?? "http://127.0.0.1:8000").replace(/\/$/, "");
-
 // Where the model looked: an 8 x 8 grid over the whole image (rows top to bottom, 0-1), and the
 // centres of up to three separate strong areas as fractions of width and height.
 // Analyses saved before multiple areas existed only have `peak`.

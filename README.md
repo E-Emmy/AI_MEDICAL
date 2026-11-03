@@ -38,7 +38,7 @@ More detail, including how to add a new test, is in [docs/HOW-IT-WORKS.md](docs/
 | Web app | Next.js 15 (App Router), React 19, TypeScript, plain CSS with light/dark design tokens |
 | Accounts and data | Supabase: Auth, Postgres with row-level security, Storage |
 | DICOM | `dicom-parser`, converted to PNG in the browser |
-| Model server | Python 3.9+, PyTorch 2.2, Hugging Face `transformers` 4.46, Pillow; standard-library HTTP server |
+| Model server | Python 3.9+, PyTorch (2.2 on Intel Macs, 2.9 elsewhere), Hugging Face `transformers` 4.57, Pillow; standard-library HTTP server locally, Gradio on Hugging Face Spaces |
 | Models | Google MedSigLIP-448 (scan check) and six open classifiers from Hugging Face (listed in `model-server/server.py`) |
 
 ## Setting it up
@@ -77,7 +77,7 @@ Fill in the Supabase URL and anon key (Supabase → **Project Settings → API**
 ```bash
 cd model-server
 python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
+.venv/bin/pip install -r requirements.txt   # Intel Mac: -r requirements-intel-mac.txt
 .venv/bin/python -u server.py
 ```
 
@@ -99,6 +99,11 @@ npm run dev
 
 Open http://localhost:3000, create an account, and try a sample scan. If port 3000 is in use, run `npx next dev -p 3001`.
 
+## Deploying
+
+The web app runs on Vercel and the model server on a Hugging Face Space. Steps, costs, the payment log
+and the plan for the competition are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
 ## Project layout
 
 ```
@@ -111,8 +116,11 @@ app/
   api/tests/route.ts    Lists the tests the model server offers
 components/             UI pieces (ScanImage draws scans, marks and heatmaps; ImageEditor crops and covers)
 lib/                    Supabase client, session hook, DICOM conversion, formatting, shared types
+  modelServer.ts        Calls the model server, locally over HTTP or on Hugging Face Spaces
 model-server/
   server.py             The model server: scan check, tests, heatmaps
+  app.py                The same server as a Gradio app, for a Hugging Face Space on ZeroGPU
+  Dockerfile, README.md Hugging Face Space settings (README.md's header)
   references.json       Example-scan fingerprints the scan check compares against
   build_references.py   Rebuilds references.json from public datasets
   build_samples.py      Rebuilds the sample scans in public/samples/
@@ -124,7 +132,7 @@ docs/                   Developer documentation
 ## Things to know
 
 - **Privacy.** Only use anonymised scans, such as the samples or public datasets. Never upload images showing a patient's name or details; use **Crop or cover text** if an image has any.
-- **Keys stay server-side.** The Hugging Face token is only read by the API route and the model server; the browser never sees it.
+- **Keys stay server-side.** The Hugging Face token and the model server secret are only read by the API routes and the model server; the browser never sees them.
 - **Speed.** On a laptop CPU, the scan check takes about 5 seconds and each heatmap 8–12 seconds, so running every chest X-ray test takes around 30–40 seconds.
 - **Model quality.** The test models are small community models. Some react to the image as a whole rather than the disease (the app flags this). See [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md#known-limitations).
 - **DICOM.** Only uncompressed, single-frame DICOM is supported.

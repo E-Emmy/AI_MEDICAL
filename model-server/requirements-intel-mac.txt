@@ -1,0 +1,9 @@
+# Intel Macs only; everything else uses requirements.txt. Keep the other pins in step with that file.
+# PyTorch stopped shipping x86_64 macOS wheels after 2.2.2, which also needs numpy<2.
+torch==2.2.2
+numpy<2
+transformers==4.57.6
+safetensors>=0.4.3
+pillow>=10.0
+sentencepiece==0.2.0  # SigLIP tokenizer for the scan-type check
+protobuf>=4,<6  # also needed by the SigLIP tokenizer

@@ -1,8 +1,13 @@
-# Pinned for Intel Macs: PyTorch stopped shipping x86_64 macOS wheels after 2.2.2.
-torch==2.2.2
-numpy<2
-transformers==4.46.3
+# Linux (including the Hugging Face Space), Apple Silicon Macs and Windows. Intel Macs use
+# requirements-intel-mac.txt instead: ZeroGPU rejects any torch below 2.8 in this file, even behind a
+# platform marker, so the Intel Mac pins can't live here.
+# ZeroGPU supports torch 2.8 and later.
+torch==2.9.1
+# Last 4.x. Transformers 5 needs Python 3.11+ and torch 2.6+, so it can't run on Intel Macs,
+# and one version everywhere means the Space runs what was tested locally.
+transformers==4.57.6
 safetensors>=0.4.3
 pillow>=10.0
 sentencepiece==0.2.0  # SigLIP tokenizer for the scan-type check
 protobuf>=4,<6  # also needed by the SigLIP tokenizer
+# Gradio itself is installed by the Space (sdk_version in README.md) and isn't needed for server.py.

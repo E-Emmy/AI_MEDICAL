@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { modelServerUrl } from "@/lib/tests";
+import { listTests } from "@/lib/modelServer";
 
 export async function GET() {
   try {
-    const res = await fetch(`${modelServerUrl()}/tests`, { cache: "no-store" });
-    if (!res.ok) throw new Error(`status ${res.status}`);
-    return NextResponse.json(await res.json());
+    const { status, body } = await listTests();
+    if (status !== 200) throw new Error(`status ${status}`);
+    return NextResponse.json(body);
   } catch {
     return NextResponse.json(
       { error: "The model server isn't running. Start it with `.venv/bin/python server.py` in the model-server folder." },

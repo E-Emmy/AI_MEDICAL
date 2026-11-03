@@ -9,6 +9,7 @@ is the kind of scan a test was trained on before running it.
 
 Only safetensors weights are loaded; pickle (.bin) weights can run code when loaded.
 """
+import hmac
 import io
 import json
 import os
@@ -41,7 +42,13 @@ import torch
 from PIL import Image, UnidentifiedImageError
 from transformers import AutoModel, AutoProcessor, pipeline
 
-HOST, PORT = "127.0.0.1", int(os.environ.get("PORT", "8000"))
+# Hosted (e.g. on Hugging Face Spaces) this runs with HOST=0.0.0.0 so it can be reached from outside.
+HOST, PORT = os.environ.get("HOST", "127.0.0.1"), int(os.environ.get("PORT", "8000"))
+# When set, every request must carry it in the X-Server-Secret header, so only the ScanLens app can
+# use a public server. A custom header, because a private Space needs Authorization for its own token.
+SECRET = os.environ.get("MODEL_SERVER_SECRET")
+# "cuda" on the ZeroGPU Space (app.py sets it); this plain HTTP server runs on the CPU.
+DEVICE = os.environ.get("DEVICE", "cpu")
 MAX_BYTES = 25 * 1024 * 1024
 
 # What the scan-type check can recognise. Only the first four have tests; the rest
@@ -121,9 +128,12 @@ class ScanTypeCheck:
         self.keys = list(SCANS)
         texts = [f"This is {SCANS[k]}." for k in self.keys]
         tokens = self.processor(text=texts, padding="max_length", return_tensors="pt")
+        # The text side is worked out once here, on the CPU; only images go through the model later.
         with torch.no_grad():
             t = self.model.get_text_features(**tokens)
         self.text = t / t.norm(dim=-1, keepdim=True)
+        self.scale, self.bias = float(self.model.logit_scale.exp()), float(self.model.logit_bias)
+        self.model.to(DEVICE)
         self.refs = {}
         if references:
             with open(references) as f:
@@ -134,12 +144,12 @@ class ScanTypeCheck:
 
     def embed(self, image):
         with torch.no_grad():
-            v = self.model.get_image_features(**self.processor(images=image, return_tensors="pt"))
-        return (v / v.norm(dim=-1, keepdim=True))[0]
+            v = self.model.get_image_features(**self.processor(images=image, return_tensors="pt").to(DEVICE))
+        return (v / v.norm(dim=-1, keepdim=True))[0].cpu()
 
     def __call__(self, image):
         v = self.embed(image)
-        logits = (v @ self.text.T) * self.model.logit_scale.exp() + self.model.logit_bias
+        logits = (v @ self.text.T) * self.scale + self.bias
         probs = logits.softmax(dim=-1)
         i = int(probs.argmax())
         text_scan, text_score = self.keys[i], float(probs[i])
@@ -163,7 +173,7 @@ def _load(key):
             else:
                 t = TESTS[key]
                 print(f"Loading {key} ({t['model']} @ {t['revision']}) ...", flush=True)
-                _pipes[key] = pipeline("image-classification", model=t["model"], revision=t["revision"], model_kwargs={"use_safetensors": True})
+                _pipes[key] = pipeline("image-classification", model=t["model"], revision=t["revision"], device=DEVICE, model_kwargs={"use_safetensors": True})
             print(f"Ready: {key}", flush=True)
         return _pipes[key]
 
@@ -174,6 +184,14 @@ def _preload():
             _load(key)
         except Exception as e:  # keep serving; the failing test reports its error when used
             print(f"Failed to load {key}: {e!r}", flush=True)
+
+
+def list_tests():
+    return [
+        {"id": k, "name": t["name"], "scan": t["scan"], "scan_name": SCAN_NAMES[t["scan"]],
+         "model": t["model"], "about": t["about"], "ready": k in _pipes}
+        for k, t in TESTS.items()
+    ]
 
 
 def detect_scan(image):
@@ -202,7 +220,7 @@ MAX_PEAKS, PEAK_SHARE = 3, 0.5
 def occlusion_heatmap(clf, image, label, scoring):
     model = clf.model
     index = {name: int(i) for i, name in model.config.id2label.items()}[label]
-    x = clf.image_processor(images=image, return_tensors="pt")["pixel_values"]
+    x = clf.image_processor(images=image, return_tensors="pt")["pixel_values"].to(model.device)
     _, _, h, w = x.shape
     ch, cw = h // GRID, w // GRID
 
@@ -403,16 +421,22 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def _allowed(self):
+        if SECRET and not hmac.compare_digest(self.headers.get("X-Server-Secret", ""), SECRET):
+            self._send(401, {"error": "Missing or wrong X-Server-Secret header."})
+            return False
+        return True
+
     def do_GET(self):
+        if not self._allowed():
+            return
         if self.path.rstrip("/") in ("", "/tests"):
-            return self._send(200, [
-                {"id": k, "name": t["name"], "scan": t["scan"], "scan_name": SCAN_NAMES[t["scan"]],
-                 "model": t["model"], "about": t["about"], "ready": k in _pipes}
-                for k, t in TESTS.items()
-            ])
+            return self._send(200, list_tests())
         self._send(404, {"error": "Not found."})
 
     def do_POST(self):
+        if not self._allowed():
+            return
         parts = self.path.strip("/").split("/")
         if len(parts) != 2 or parts[0] != "tests" or (parts[1] not in TESTS and parts[1] != "auto"):
             return self._send(404, {"error": "Unknown test."})

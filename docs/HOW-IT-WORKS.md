@@ -10,7 +10,7 @@ This guide is for developers working on ScanLens. It covers what happens when a 
 4. **Analyse** (`app/api/analyze/route.ts`). The browser calls `POST /api/analyze` with the image path, the test id (`auto` means every matching test) and, for samples, the sample id. The route:
    - checks the Supabase session and that the path is in the user's own folder,
    - downloads the image from Storage as that user,
-   - posts the raw PNG bytes to the model server at `MODEL_SERVER_URL/tests/<test id>`,
+   - sends the PNG to the model server through `lib/modelServer.ts`: as raw bytes to `MODEL_SERVER_URL/tests/<test id>`, or to the Space's `/analyze` API when `MODEL_SPACE` is set (see [DEPLOYMENT.md](DEPLOYMENT.md)),
    - saves **one `analyses` row per test**, all with the same `image_path`, and returns the first row's id.
 5. **Model server** (`model-server/server.py`):
    - **Scan check.** MedSigLIP turns the image into an embedding and compares it with the average embedding of real example scans of each type (`references.json`). The closest type wins if its similarity is at least `MIN_SCAN_SCORE` (0.58). Text descriptions catch other images (ultrasound, photos, screenshots). If the check fails, or the scan type doesn't match the chosen test, the server returns **422** with an explanation, and the app shows it.
@@ -21,7 +21,9 @@ This guide is for developers working on ScanLens. It covers what happens when a 
 
 ## Model server API
 
-The server has no authentication and listens only on `127.0.0.1`. If you ever expose it, put it behind a shared secret.
+By default the server listens only on `127.0.0.1` with no authentication. When `MODEL_SERVER_SECRET` is set, every request must send it in an `X-Server-Secret` header, or it gets `401`. `HOST=0.0.0.0` makes it reachable from outside; only do that with a secret set.
+
+On the ZeroGPU Space, `app.py` offers the same thing through Gradio: `/analyze` (image, test id, secret) and `/tests` (secret), each returning `{ status, body }` with the status and body below.
 
 | Request | Response |
 |---|---|

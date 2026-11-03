@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { normalise, type Region } from "@/lib/hf";
-import { modelServerUrl } from "@/lib/tests";
+import { runTest, type ModelServerReply } from "@/lib/modelServer";
 import { findSample } from "@/lib/samples";
 
 export const maxDuration = 60;
@@ -31,20 +31,16 @@ export async function POST(req: NextRequest) {
   const { data: file, error: dlErr } = await sb.storage.from("scans").download(imagePath);
   if (dlErr || !file) return NextResponse.json({ error: "Could not read the uploaded image" }, { status: 404 });
 
-  let res: Response;
+  let reply: ModelServerReply;
   try {
-    res = await fetch(`${modelServerUrl()}/tests/${testId}`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${process.env.HF_TOKEN ?? ""}`, "Content-Type": "image/png" },
-      body: Buffer.from(await file.arrayBuffer()),
-    });
+    reply = await runTest(testId, file);
   } catch {
     return NextResponse.json({ error: "The model server isn't running. Start it, then try again." }, { status: 503 });
   }
-  const body = await res.json();
+  const { status, body } = reply;
   // 422 means the scan-type check rejected the image; pass its explanation through.
-  if (res.status === 422) return NextResponse.json({ error: body.error, scanCheck: body.scan_check }, { status: 422 });
-  if (!res.ok) return NextResponse.json({ error: body.error ?? "The model request failed." }, { status: 502 });
+  if (status === 422) return NextResponse.json({ error: body.error, scanCheck: body.scan_check }, { status: 422 });
+  if (status !== 200) return NextResponse.json({ error: body.error ?? "The model request failed." }, { status: 502 });
 
   // One row per test, all pointing at the same image. `raw` keeps the test and scan-type check,
   // so no schema change is needed.
