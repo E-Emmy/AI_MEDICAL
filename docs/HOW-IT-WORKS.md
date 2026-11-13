@@ -1,6 +1,6 @@
-# How ScanLens works
+# How Orbinova Imaging works
 
-This guide is for developers working on ScanLens. It covers what happens when a scan is analysed, where the data lives, how to add a test, and what's known to be weak. Setup steps are in the [README](../README.md).
+This guide is for developers working on Orbinova Imaging. It covers what happens when a scan is analysed, where the data lives, how to add a test, and what's known to be weak. Setup steps are in the [README](../README.md).
 
 ## The life of an analysis
 

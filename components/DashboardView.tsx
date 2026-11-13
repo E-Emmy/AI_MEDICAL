@@ -96,7 +96,7 @@ export default function DashboardView({ rows, urls, verdicts, cases, error }: Pr
       )}
 
       {rows && rows.length === 0 && !error && (
-        <Stage word="ScanLens">
+        <Stage word="Orbinova">
           <div className="stage-empty">
             <p>Upload an X-ray, CT, MRI or photo and the findings appear here, with where each model looked marked on the scan.</p>
             <Link className="btn" href="/upload">Upload a scan</Link>

@@ -1,6 +1,6 @@
-# Deploying ScanLens
+# Deploying Orbinova Imaging
 
-This covers where each part of ScanLens runs when it's online, what that costs, how to switch to the paid
+This covers where each part of Orbinova Imaging runs when it's online, what that costs, how to switch to the paid
 setup planned for the competition, and what was changed in the code to make deployment possible and why.
 Local setup is in the [README](../README.md).
 

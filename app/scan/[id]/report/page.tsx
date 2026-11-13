@@ -45,7 +45,7 @@ export default function Report({ params }: { params: Promise<{ id: string }> }) 
 
       <article className="report">
         <header className="report-head">
-          <span className="brand"><Logo />ScanLens</span>
+          <span className="brand"><Logo /><span>Orbi<span className="brand-accent">nova</span> Imaging</span></span>
           <div className="report-meta">
             <span>Analysis report</span>
             <span>{fmtDate(a.created_at)}</span>

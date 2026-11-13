@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 
 const sans = Outfit({ subsets: ["latin"], variable: "--font-sans" });
 
-export const metadata = { title: "ScanLens", description: "AI-assisted analysis of medical scans, for clinicians" };
+export const metadata = { title: "Orbinova Imaging", description: "AI-assisted analysis of medical scans, for clinicians" };
 
 // Applies the saved theme before first paint so the page doesn't flash the wrong colours.
 const themeScript = `try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;

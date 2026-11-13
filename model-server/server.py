@@ -1,4 +1,4 @@
-"""Local model server for ScanLens.
+"""Local model server for Orbinova Imaging.
 
 Runs several image-classification models ("tests") and checks that each image
 is the kind of scan a test was trained on before running it.
@@ -6,6 +6,7 @@ is the kind of scan a test was trained on before running it.
   GET  /tests        -> the available tests
   POST /tests/<id>   -> run one test on an image sent as the raw request body
   POST /tests/auto   -> work out the scan type and run every test made for it
+  POST /series       -> analyse a full CT/MRI scan slice by slice; JSON body {"url": R2 link, "kind": ...}
 
 Only safetensors weights are loaded; pickle (.bin) weights can run code when loaded.
 """
@@ -44,7 +45,7 @@ from transformers import AutoModel, AutoProcessor, pipeline
 
 # Hosted (e.g. on Hugging Face Spaces) this runs with HOST=0.0.0.0 so it can be reached from outside.
 HOST, PORT = os.environ.get("HOST", "127.0.0.1"), int(os.environ.get("PORT", "8000"))
-# When set, every request must carry it in the X-Server-Secret header, so only the ScanLens app can
+# When set, every request must carry it in the X-Server-Secret header, so only the Orbinova Imaging app can
 # use a public server. A custom header, because a private Space needs Authorization for its own token.
 SECRET = os.environ.get("MODEL_SERVER_SECRET")
 # "cuda" on the ZeroGPU Space (app.py sets it); this plain HTTP server runs on the CPU.
@@ -527,7 +528,7 @@ def run_matching(image):
     if not matching:
         have = sorted({SCAN_NAMES[s] for t in TESTS.values() for s in _scans(t)})
         return 422, {
-            "error": f"This looks like a {scan['name']}. ScanLens doesn't have a test for that yet. "
+            "error": f"This looks like a {scan['name']}. Orbinova Imaging doesn't have a test for that yet. "
                      f"It has tests for {', '.join(have[:-1])} and {have[-1]} scans.",
             "scan_check": scan,
         }
@@ -560,6 +561,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self._allowed():
             return
+        if self.path.strip("/") == "series":
+            return self._series()
         parts = self.path.strip("/").split("/")
         if len(parts) != 2 or parts[0] != "tests" or (parts[1] not in TESTS and parts[1] != "auto"):
             return self._send(404, {"error": "Unknown test."})
@@ -574,6 +577,21 @@ class Handler(BaseHTTPRequestHandler):
             self._send(*(run_matching(image) if parts[1] == "auto" else run_test(parts[1], image)))
         except Exception as e:
             self._send(500, {"error": f"The model failed: {e}"})
+
+    def _series(self):
+        import series  # imports this module, so loaded on first use
+        length = int(self.headers.get("Content-Length") or 0)
+        try:
+            req = json.loads(self.rfile.read(min(length, 10000)) or b"{}")
+            url, kind = str(req.get("url", "")), str(req.get("kind", ""))
+        except (ValueError, AttributeError):
+            return self._send(400, {"error": "Send JSON with the scan's url and kind."})
+        try:
+            self._send(200, series.analyse(url, kind))
+        except ValueError as e:
+            self._send(400, {"error": str(e)})
+        except Exception as e:
+            self._send(500, {"error": f"The analysis failed: {e}"})
 
 
 if __name__ == "__main__":

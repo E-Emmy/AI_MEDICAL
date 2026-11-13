@@ -1,5 +1,5 @@
 ---
-title: ScanLens Model Server
+title: Orbinova Imaging Model Server
 emoji: 🩻
 colorFrom: blue
 colorTo: gray
@@ -10,9 +10,9 @@ app_file: app.py
 pinned: false
 ---
 
-The model server for ScanLens. The header above configures it as a Hugging Face Space
+The model server for Orbinova Imaging. The header above configures it as a Hugging Face Space
 (Gradio on ZeroGPU hardware). To run it as a Docker Space instead, see docs/DEPLOYMENT.md
-in the ScanLens repository.
+in the Orbinova Imaging repository.
 
 Set these as Space secrets (Settings > Variables and secrets):
 

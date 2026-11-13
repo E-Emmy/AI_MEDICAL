@@ -1,6 +1,6 @@
 import dicomParser from "dicom-parser";
 
-// What ScanLens keeps from a DICOM header. Nothing here identifies the patient.
+// What Orbinova Imaging keeps from a DICOM header. Nothing here identifies the patient.
 export type DicomInfo = {
   modality?: string; bodyPart?: string; description?: string; manufacturer?: string;
   rows: number; cols: number; frames: number;

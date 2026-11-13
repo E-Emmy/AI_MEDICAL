@@ -1,4 +1,4 @@
-/* ScanLens. A cool, lit room: grey canvas, white surfaces, clinical blue for action,
+/* Orbinova Imaging. A cool, lit room: grey canvas, white surfaces, clinical blue for action,
    heart red only for findings. The stage (the scan with floating readouts) is the one bold element. */
 :root {
   color-scheme: light;
@@ -160,10 +160,16 @@ h3 {
   font-size: 21px;
   font-weight: 600;
   letter-spacing: -0.02em;
+  text-transform: uppercase;
 }
-.brand svg {
-  width: 30px;
-  height: 30px;
+.brand-accent {
+  color: var(--accent);
+}
+.brand svg,
+.brand .logo-mark {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
 }
 .pills {
   display: flex;
@@ -1976,4 +1982,170 @@ select:focus,
   color: #95a0b3;
   font-size: 13px;
   text-align: center;
+}
+
+/* Full scans: a whole CT or MRI series in the 3D viewer */
+.series-layout {
+  grid-template-columns: minmax(0, 2.2fr) minmax(280px, 1fr);
+}
+@media (max-width: 1000px) {
+  .series-layout {
+    grid-template-columns: 1fr;
+  }
+}
+.viewer {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.viewer-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+}
+.viewer-stage {
+  position: relative;
+  height: min(72vh, 720px);
+  min-height: 360px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--film);
+}
+.viewer-stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.viewer-placeholder,
+.viewer-msg {
+  display: grid;
+  place-items: center;
+  height: min(72vh, 720px);
+  min-height: 360px;
+  padding: 24px;
+  border-radius: 24px;
+  background: var(--film);
+  color: var(--film-text);
+  text-align: center;
+}
+.viewer-msg {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  min-height: 0;
+}
+.viewer-readout {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  margin: 0;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(5, 8, 12, 0.72);
+  color: var(--film-text);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.viewer-readout b {
+  color: var(--film-mark);
+  font-weight: 600;
+}
+.viewer-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 24px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+}
+.viewer-group {
+  display: grid;
+  gap: 6px;
+}
+.viewer-angles,
+.viewer-arrows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.viewer-slider {
+  flex: 1 1 220px;
+  margin: 0;
+}
+.viewer-slider input[type="range"] {
+  width: 100%;
+}
+.drop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.seg-wrap {
+  border-radius: 18px;
+}
+@media (max-width: 640px) {
+  .viewer-stage,
+  .viewer-placeholder {
+    height: 60vh;
+    border-radius: 18px;
+  }
+  .viewer-tools {
+    padding: 12px;
+  }
+}
+.series-analysis {
+  display: grid;
+  gap: 12px;
+}
+.series-headline {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+.series-headline.flag {
+  background: var(--flag-soft);
+  color: var(--ink);
+  border-left: 3px solid var(--flag);
+}
+.series-headline.ok {
+  background: var(--ok-soft);
+  border-left: 3px solid var(--ok);
+}
+.flagged-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.flagged-list button {
+  display: grid;
+  grid-template-columns: 5.5em 1fr auto;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.flagged-list button:hover {
+  border-color: var(--accent);
+}
+.flagged-list b {
+  color: var(--flag);
+  font-variant-numeric: tabular-nums;
 }

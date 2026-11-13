@@ -52,3 +52,16 @@ export async function runTest(testId: string, image: Blob): Promise<ModelServerR
   });
   return { status: res.status, body: await res.json() };
 }
+
+// Analyses a full CT/MRI scan slice by slice. The model server downloads it from the signed R2 link.
+// Throws when the server can't be reached at all.
+export async function runSeries(kind: string, url: string): Promise<ModelServerReply> {
+  const name = process.env.MODEL_SPACE;
+  if (name) return callSpace(name, "/analyze_series", { url, kind, secret: secret() });
+  const res = await fetch(`${serverUrl()}/series`, {
+    method: "POST",
+    headers: { "X-Server-Secret": secret(), "Content-Type": "application/json" },
+    body: JSON.stringify({ url, kind }),
+  });
+  return { status: res.status, body: await res.json() };
+}

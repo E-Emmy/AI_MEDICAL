@@ -48,7 +48,7 @@ export default function Login() {
   return (
     <div className="auth">
       <aside className="auth-brand">
-        <span className="brand"><Logo />ScanLens</span>
+        <span className="brand"><Logo /><span>Orbi<span className="brand-accent">nova</span> Imaging</span></span>
         <div>
           <h2>See what the model marks on your scans.</h2>
           <p>Upload an X-ray or CT image, review the findings and the regions behind them, and keep every result private to your account.</p>

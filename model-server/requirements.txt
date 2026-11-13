@@ -11,3 +11,4 @@ pillow>=10.0
 sentencepiece==0.2.0  # SigLIP tokenizer for the scan-type check
 protobuf>=4,<6  # also needed by the SigLIP tokenizer
 # Gradio itself is installed by the Space (sdk_version in README.md) and isn't needed for server.py.
+nibabel==5.2.1  # reads full CT/MRI scans (NIfTI) for slice-by-slice analysis

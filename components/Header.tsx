@@ -8,6 +8,7 @@ import ThemeToggle from "./ThemeToggle";
 const NAV: [string, string, (p: string) => boolean][] = [
   ["/", "Overview", (p) => p === "/" || p.startsWith("/scan")],
   ["/upload", "New analysis", (p) => p.startsWith("/upload")],
+  ["/series", "Full scans", (p) => p.startsWith("/series")],
   ["/cases", "Cases", (p) => p.startsWith("/cases")],
 ];
 
@@ -26,7 +27,7 @@ export default function Header() {
   return (
     <>
       <header className="topbar">
-        <Link href={shared ? "/login" : "/"} className="brand"><Logo />ScanLens</Link>
+        <Link href={shared ? "/login" : "/"} className="brand"><Logo /><span>Orbi<span className="brand-accent">nova</span> Imaging</span></Link>
         {!shared && (
           <nav className="pills" aria-label="Main">
             {NAV.map(([href, text, on]) => (

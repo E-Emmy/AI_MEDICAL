@@ -6,6 +6,7 @@ when MODEL_SPACE is set; see docs/DEPLOYMENT.md.
 
   analyze(image, test_id, secret) -> {"status": ..., "body": ...}, the same as POST /tests/<test_id>
   tests(secret)                   -> {"status": ..., "body": ...}, the same as GET /tests
+  analyze_series(url, kind, secret) -> {"status": ..., "body": ...}, the same as POST /series
 """
 import hmac
 import os
@@ -18,6 +19,7 @@ import spaces
 from PIL import Image, UnidentifiedImageError
 
 import server
+import series
 
 # Models load once at startup, before any request; loading inside a GPU call would repeat it every time.
 server._preload()
@@ -50,14 +52,35 @@ def analyze(image, test_id, secret):
     return {"status": status, "body": body}
 
 
+@spaces.GPU(duration=120)
+def _run_series(prepared):
+    return series.run(prepared)
+
+
+def analyze_series(url, kind, secret):
+    if not _allowed(secret):
+        return {"status": 401, "body": {"error": "Missing or wrong secret."}}
+    try:
+        # Downloading and slicing happen before the GPU call, so they don't use GPU quota.
+        prepared = series.prepare(url, kind)
+    except ValueError as e:
+        return {"status": 400, "body": {"error": str(e)}}
+    except Exception as e:
+        return {"status": 502, "body": {"error": f"The scan couldn't be read: {e}"}}
+    try:
+        return {"status": 200, "body": _run_series(prepared)}
+    except Exception as e:  # includes running out of daily ZeroGPU quota
+        return {"status": 500, "body": {"error": f"The analysis failed: {e}"}}
+
+
 def tests(secret):
     if not _allowed(secret):
         return {"status": 401, "body": {"error": "Missing or wrong secret."}}
     return {"status": 200, "body": server.list_tests()}
 
 
-with gr.Blocks(title="ScanLens model server") as demo:
-    gr.Markdown("# ScanLens model server\nUsed by the ScanLens app. Requests need the server secret.")
+with gr.Blocks(title="Orbinova Imaging model server") as demo:
+    gr.Markdown("# Orbinova Imaging model server\nUsed by the Orbinova Imaging app. Requests need the server secret.")
     # A file, not gr.Image, so the scan reaches the models byte for byte without being re-encoded.
     # No file_types: the app uploads a blob without a file name, and analyze() checks it is an image.
     image = gr.File(label="Scan image", type="filepath")
@@ -66,9 +89,14 @@ with gr.Blocks(title="ScanLens model server") as demo:
     with gr.Row():
         run_button = gr.Button("Analyse", variant="primary")
         tests_button = gr.Button("List tests")
+    with gr.Accordion("Full scan", open=False):
+        series_url = gr.Textbox(label="Scan link (R2)")
+        series_kind = gr.Dropdown(list(series.TESTS), value="brain-mri", label="Kind")
+        series_button = gr.Button("Analyse full scan")
     out = gr.JSON(label="Result")
     run_button.click(analyze, [image, test_id, secret], out, api_name="analyze")
     tests_button.click(tests, [secret], out, api_name="tests")
+    series_button.click(analyze_series, [series_url, series_kind, secret], out, api_name="analyze_series")
 
 if __name__ == "__main__":
     demo.queue().launch(max_file_size="25mb")

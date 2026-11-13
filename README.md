@@ -1,6 +1,6 @@
-# ScanLens
+# Orbinova Imaging
 
-ScanLens is a web app that analyses medical images (chest X-rays, bone and knee X-rays, brain MRI, chest CT, retina photos and skin lesion photos) with open AI models. You upload a scan, it checks what kind of scan it is, runs every test made for that scan type, and shows the results with a heatmap of where each model looked. A clinician can then agree or disagree with each result.
+Orbinova Imaging is a web app that analyses medical images (chest X-rays, bone and knee X-rays, brain MRI, chest CT, retina photos and skin lesion photos) with open AI models. You upload a scan, it checks what kind of scan it is, runs every test made for that scan type, and shows the results with a heatmap of where each model looked. A clinician can then agree or disagree with each result.
 
 It is decision support for research and demos, not a diagnostic device. The models are small open models from Hugging Face and make mistakes; every result needs a qualified person to review it.
 
@@ -18,6 +18,7 @@ It is decision support for research and demos, not a diagnostic device. The mode
 - **Report PDF:** a one-page report with the scan, heatmap, results, reviews and a plain-language summary, saved through the browser's Save as PDF.
 - **Second opinion:** a read-only share link to one scan, its results and reviews, valid for 7 days and revocable.
 - **Plain-language summary:** fixed, reviewed sentences that explain each result for a patient, ready to copy.
+- **Full scans (3D):** upload a whole CT or MRI series (a folder of DICOM slices or a .nii/.nii.gz file) and view it in axial, coronal, sagittal and 3D. Turn the 3D view to any side, zoom, move through every slice and cut the scan open from the front. The DICOM files are converted in the browser, so only the pixels and scan geometry are uploaded, to a private Cloudflare R2 bucket. For MRI, the front of the head is always cut away in 3D so the view can't show a face. **Analyse every slice** runs the brain tumour test (brain MRI) or the lung cancer test (chest CT) on each axial slice on the model server, lists the flagged slices, and shows where the model looked in orange in every view, including 3D; a clinician can agree or disagree. On the ZeroGPU Space a whole scan takes about 10 seconds. Two public samples (brain MRI with a glioblastoma, chest CT with a lung nodule) are included, with their analysis precomputed.
 - **Overview:** the latest scan, results waiting for review, and how often clinicians agreed with the models, in light or dark mode.
 
 ## How it fits together
@@ -60,10 +61,10 @@ npm install
 ### 2. Set up Supabase
 
 1. Create a project at supabase.com.
-2. Open **SQL Editor → New query**, paste the whole of `supabase/schema.sql`, and run it. This creates the `analyses`, `reviews`, `cases` and `shares` tables, their security rules, the function behind share links, and the private `scans` storage bucket.
+2. Open **SQL Editor → New query**, paste the whole of `supabase/schema.sql`, and run it. This creates the `analyses`, `reviews`, `cases`, `shares` and `series` tables, their security rules, the function behind share links, and the private `scans` storage bucket.
 3. In **Authentication → Providers → Email**, either keep email confirmation on (new users must click a link) or turn it off for quick local testing.
 
-If your project was created from an older `schema.sql`, run only the migrations it's missing, in order: `supabase/migrations/002_reviews_and_delete.sql`, then `003_cases_and_shares.sql`. Without 003 the app still analyses scans, but cases and share links stay switched off.
+If your project was created from an older `schema.sql`, run only the migrations it's missing, in order: `supabase/migrations/002_reviews_and_delete.sql`, then `003_cases_and_shares.sql`, then `004_series.sql`. Without 003 the app still analyses scans, but cases and share links stay switched off. Without 004, full scans can be viewed as samples but not uploaded.
 
 ### 3. Get a Hugging Face token
 
@@ -77,6 +78,8 @@ cp .env.example .env.local
 ```
 
 Fill in the Supabase URL and anon key (Supabase → **Project Settings → API**) and your Hugging Face token. Never commit `.env.local`.
+
+Full scans also need a Cloudflare R2 bucket: create a private bucket, an R2 API token with Object Read & Write on that bucket only, and a CORS rule allowing `GET`, `PUT` and `HEAD` from your site's address (and `http://localhost:3000`). Then fill in the four `R2_` settings.
 
 ### 5. Start the model server
 
