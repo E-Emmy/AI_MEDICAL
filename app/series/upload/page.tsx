@@ -9,6 +9,8 @@ import CasePicker from "@/components/CasePicker";
 import SeriesFactsList from "@/components/SeriesFacts";
 import { KIND_NAMES, guessKind, gzip, readDicomSeries, readNiftiFacts, toNifti, type SeriesFacts, type SeriesKind } from "@/lib/series";
 import { SERIES_MISSING, putToR2, seriesLink } from "@/lib/seriesApi";
+import { SERIES_SAMPLES, type SeriesSample } from "@/lib/seriesSamples";
+import { isZip, readZip } from "@/lib/zip";
 
 const SeriesViewer = dynamic(() => import("@/components/SeriesViewer"), { ssr: false });
 
@@ -49,6 +51,7 @@ export default function UploadSeries() {
   const [caseId, setCaseId] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [err, setErr] = useState("");
+  const [fetching, setFetching] = useState("");
 
   useEffect(() => () => { if (ready) URL.revokeObjectURL(ready.url); }, [ready]);
 
@@ -58,6 +61,11 @@ export default function UploadSeries() {
     if (files.length === 0) return;
     try {
       let blob: Blob, facts: SeriesFacts, source: string;
+      // A zipped DICOM folder is unpacked here, in the browser.
+      if (files.length === 1 && isZip(files[0])) {
+        setReading("Unzipping…");
+        files = await readZip(files[0]);
+      }
       const nii = files.find(isNifti);
       if (nii && files.length === 1) {
         setReading("Reading the NIfTI file…");
@@ -101,6 +109,17 @@ export default function UploadSeries() {
     }
   }
 
+  async function download(s: SeriesSample) {
+    setFetching(s.id); setErr("");
+    try {
+      // A short-lived link to the zip in R2; the browser saves it under its own name.
+      window.location.href = (await seriesLink("download", s.download.key)).url!;
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    }
+    setTimeout(() => setFetching(""), 1500);
+  }
+
   const busy = !!reading || progress != null;
   const error = err && <div className="callout bad" role="alert"><strong>That didn&apos;t work</strong>{err}</div>;
 
@@ -127,7 +146,7 @@ export default function UploadSeries() {
               <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M12 16v-5M9.5 13.5 12 11l2.5 2.5" />
             </svg>
             <strong>{reading || "Drop a scan folder here"}</strong>
-            <span className="muted">Uncompressed DICOM slices of one series, or a NIfTI file. Patient details in the DICOM headers stay on this computer: only the pixels and scan geometry are uploaded.</span>
+            <span className="muted">Uncompressed DICOM slices of one series (a folder or a .zip), or a NIfTI file. Patient details in the DICOM headers stay on this computer: only the pixels and scan geometry are uploaded.</span>
             <div className="drop-actions">
               <label className="btn btn-quiet">
                 <input className="sr-only" type="file" multiple disabled={busy}
@@ -136,13 +155,38 @@ export default function UploadSeries() {
                 Choose a folder
               </label>
               <label className="btn btn-quiet">
-                <input className="sr-only" type="file" accept=".nii,.gz" disabled={busy}
+                <input className="sr-only" type="file" accept=".zip,.nii,.gz,application/zip" disabled={busy}
                   onChange={(e) => take([...(e.target.files ?? [])])} />
-                Choose a .nii.gz file
+                Choose a .zip or .nii.gz file
               </label>
             </div>
           </div>
-          <p className="fine">Want to try it first? Open one of the <Link href="/series">sample full scans</Link>.</p>
+
+          <section className="samples" aria-labelledby="try-h">
+            <h2 id="try-h" className="section-title">Need a scan to try?</h2>
+            <p className="muted">
+              Download a real, anonymised full scan as a zipped DICOM folder, then drop the .zip above (or unzip it and choose the folder).
+            </p>
+            <ul className="try-list">
+              {SERIES_SAMPLES.map((s) => (
+                <li key={s.id} className="try-item">
+                  <img src={s.thumb} alt="" loading="lazy" />
+                  <div>
+                    <strong>{s.title}</strong>
+                    <span className="muted small">{s.finding} · {s.facts.size[2]} slices · {s.download.size}</span>
+                    <span className="fine">Source: <a href={s.url} target="_blank" rel="noreferrer">{s.credit}</a></span>
+                  </div>
+                  <button type="button" className="btn btn-quiet btn-sm" onClick={() => download(s)} disabled={!!fetching}>
+                    {fetching === s.id ? "Starting…" : "Download .zip"}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <p className="fine">
+              More full scans: <a href="https://www.cancerimagingarchive.net" target="_blank" rel="noreferrer">The Cancer Imaging Archive</a> (for
+              example the LIDC-IDRI chest CT and UPENN-GBM brain MRI collections). Compressed DICOM isn&apos;t supported yet.
+            </p>
+          </section>
         </>
       )}
 

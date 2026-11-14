@@ -1,5 +1,5 @@
 "use client";
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,8 @@ import SeriesFactsList from "@/components/SeriesFacts";
 import { findSeriesSample, type SeriesSample } from "@/lib/seriesSamples";
 import { SERIES_COLUMNS, SERIES_MISSING, seriesLink, type SeriesRow } from "@/lib/seriesApi";
 import SeriesAnalysis from "@/components/SeriesAnalysis";
+import OrganExplorer from "@/components/OrganExplorer";
+import { presentOrgans, type OrganStat, type PresentOrgan } from "@/lib/organs";
 import { findingPosition, type FlaggedSlice, type SeriesResults, type SeriesReview } from "@/lib/seriesResults";
 
 const SeriesViewer = dynamic(() => import("@/components/SeriesViewer"), { ssr: false });
@@ -29,6 +31,26 @@ export default function FullScan({ params }: { params: Promise<{ id: string }> }
   const [analysisErr, setAnalysisErr] = useState("");
   const [showFindings, setShowFindings] = useState(true);
   const [focus, setFocus] = useState<{ pos: [number, number, number]; n: number } | null>(null);
+  const [organList, setOrganList] = useState<PresentOrgan[] | null>(null);
+  // Lungs, heart and vessels start switched on; bones and the rest are a tick away.
+  const [visibleOrgans, setVisibleOrgans] = useState<Set<string>>(new Set());
+  const [selectedOrgan, setSelectedOrgan] = useState<string | null>(null);
+  const [hideScan, setHideScan] = useState(false);
+  const [organLabels, setOrganLabels] = useState(false);
+  const organs = useMemo(
+    () => (sample?.organs && organList ? { url: `${sample.organs}.organs.nii.gz`, list: organList, visible: visibleOrgans, hideScan, labels: organLabels } : null),
+    [sample?.organs, organList, visibleOrgans, hideScan, organLabels],
+  );
+
+  useEffect(() => {
+    if (!sample?.organs) return;
+    fetch(`${sample.organs}.organs.json`).then((r) => (r.ok ? r.json() : null)).then((stats: OrganStat[] | null) => {
+      if (!stats) return;
+      const list = presentOrgans(stats);
+      setOrganList(list);
+      setVisibleOrgans(new Set(list.filter((o) => o.group === "Lungs and airway" || o.group === "Heart and blood vessels").map((o) => o.id)));
+    }).catch(() => {});
+  }, [sample?.organs]);
 
   useEffect(() => {
     if (!session) return;
@@ -71,6 +93,12 @@ export default function FullScan({ params }: { params: Promise<{ id: string }> }
     setAnalysing(false);
   }
 
+  function focusOrgan(o: PresentOrgan) {
+    setSelectedOrgan(o.id);
+    if (!visibleOrgans.has(o.id)) setVisibleOrgans(new Set([...visibleOrgans, o.id]));
+    setFocus({ pos: o.center, n: Date.now() });
+  }
+
   function focusOn(f: FlaggedSlice) {
     if (results) setFocus({ pos: findingPosition(results, f), n: Date.now() });
   }
@@ -103,20 +131,29 @@ export default function FullScan({ params }: { params: Promise<{ id: string }> }
 
   return (
     <>
-      <div className="page-head">
-        <div>
-          <p className="muted small"><Link href="/series">Full scans</Link></p>
-          <h1>{title}</h1>
-          {sample && <p className="lede">{sample.finding}.</p>}
-        </div>
-      </div>
+      <header className="scan-head">
+        <p className="crumbs-light"><Link href="/series">Full scans</Link> <span aria-hidden="true">/</span> {kind ? KIND_NAMES[kind] : "Scan"}</p>
+        <h1>{title}</h1>
+        {sample && <p className="lede">{sample.finding}.</p>}
+        {kind && facts && (
+          <ul className="scan-tags">
+            <li>{KIND_NAMES[kind]}</li>
+            <li><b>{facts.size[2]}</b> slices</li>
+            <li>{facts.size[0]} × {facts.size[1]} px</li>
+            <li>{facts.spacing.map((v) => Math.round(v * 100) / 100).join(" × ")} mm voxels</li>
+            {results && <li className={results.summary.flagged ? "tag-flag" : "tag-ok"}>{results.summary.flagged ? `${results.summary.flagged} slices flagged` : "No finding"}</li>}
+            {organList && <li className="tag-accent">{organList.length} structures outlined</li>}
+          </ul>
+        )}
+      </header>
       {err && <div className="callout bad" role="alert"><strong>The scan couldn&apos;t be opened</strong>{err}</div>}
 
       {!err && kind && facts && (
         <div className="scan-layout series-layout">
           <div className="scan-main">
             {url ? (
-              <SeriesViewer url={url} kind={kind} results={results} showFindings={showFindings} focus={focus} />
+              <SeriesViewer url={url} kind={kind} results={results} showFindings={showFindings} focus={focus}
+                organs={organs} onOrganAt={(id) => organs && setSelectedOrgan(id)} />
             ) : (
               <div className="viewer-placeholder">Loading scan…</div>
             )}
@@ -127,6 +164,10 @@ export default function FullScan({ params }: { params: Promise<{ id: string }> }
               <SeriesFactsList kind={kind} facts={facts} />
               {row && <p className="small muted">Uploaded {fmtDate(row.created_at)}</p>}
             </div>
+            {organList && (
+              <OrganExplorer organs={organList} visible={visibleOrgans} onVisible={setVisibleOrgans} selected={selectedOrgan}
+                onSelect={focusOrgan} hideScan={hideScan} onHideScan={setHideScan} labels={organLabels} onLabels={setOrganLabels} />
+            )}
             <SeriesAnalysis kind={kind} results={results} sample={!!sample} busy={analysing} err={analysisErr} onAnalyse={analyse}
               showFindings={showFindings} onShowFindings={setShowFindings} onFocus={focusOn} onReview={row ? review : undefined} />
             {sample && <Credit sample={sample} />}

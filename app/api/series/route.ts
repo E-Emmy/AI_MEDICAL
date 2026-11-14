@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
-import { remove, uploadUrl, viewUrl } from "@/lib/r2";
+import { downloadUrl, remove, uploadUrl, viewUrl } from "@/lib/r2";
 
 // Hands out short-lived R2 links for full scans. Each person's scans live under series/<their id>/,
 // so the key itself says whose it is; samples/ can be viewed by anyone signed in.
@@ -23,6 +23,12 @@ export async function POST(req: NextRequest) {
       const sample = typeof key === "string" && /^samples\/[\w-]+\.nii\.gz$/.test(key);
       if (!own && !sample) return NextResponse.json({ error: "You can't open that scan." }, { status: 403 });
       return NextResponse.json({ url: await viewUrl(key) });
+    }
+    if (action === "download") {
+      // Only the sample DICOM folders (zipped) can be downloaded, for people who want a scan to try.
+      const m = typeof key === "string" && key.match(/^samples\/downloads\/([\w-]+\.zip)$/);
+      if (!m) return NextResponse.json({ error: "That file can't be downloaded." }, { status: 403 });
+      return NextResponse.json({ url: await downloadUrl(key, m[1]) });
     }
     if (action === "delete") {
       if (!own) return NextResponse.json({ error: "You can't delete that scan." }, { status: 403 });

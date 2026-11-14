@@ -53,7 +53,10 @@ export default function FullScans() {
 
       <section className="samples" aria-labelledby="samples-h">
         <h2 id="samples-h" className="section-title">Sample full scans</h2>
-        <p className="muted">Anonymised scans from public research datasets.</p>
+        <p className="muted">
+          Anonymised scans from public research datasets. To try uploading one yourself,{" "}
+          <Link href="/series/upload#try-h">download it as a DICOM folder</Link>.
+        </p>
         <ul className="sample-grid">
           {SERIES_SAMPLES.map((s) => (
             <li key={s.id}>

@@ -20,7 +20,7 @@ export const SERIES_MISSING =
   "Full scans aren't set up in your Supabase project yet. Run supabase/migrations/004_series.sql in the Supabase SQL editor, then reload this page.";
 
 // Asks the server for a short-lived R2 link. The server checks the key belongs to the signed-in user.
-export async function seriesLink(action: "upload" | "view" | "delete", key?: string): Promise<{ url?: string; key?: string }> {
+export async function seriesLink(action: "upload" | "view" | "delete" | "download", key?: string): Promise<{ url?: string; key?: string }> {
   const { data } = await supabase.auth.getSession();
   const res = await fetch("/api/series", {
     method: "POST",
@@ -40,7 +40,11 @@ export function putToR2(url: string, blob: Blob, onProgress: (f: number) => void
     xhr.setRequestHeader("Content-Type", "application/gzip");
     xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
     xhr.onload = () => (xhr.status < 300 ? resolve() : reject(new Error(`Upload failed (${xhr.status}). Try again.`)));
-    xhr.onerror = () => reject(new Error("The upload was interrupted. Check your connection and try again."));
+    // The browser hides why a cross-site request failed. With a working connection it is almost always the
+    // storage bucket's CORS policy not listing this site's address.
+    xhr.onerror = () => reject(new Error(
+      `The scan storage refused the upload from ${window.location.origin}. Add this address to the R2 bucket's CORS policy ` +
+      "(Cloudflare → R2 → the bucket → Settings → CORS Policy), or check your internet connection, then try again."));
     xhr.send(blob);
   });
 }

@@ -62,7 +62,7 @@ npm install
 
 1. Create a project at supabase.com.
 2. Open **SQL Editor → New query**, paste the whole of `supabase/schema.sql`, and run it. This creates the `analyses`, `reviews`, `cases`, `shares` and `series` tables, their security rules, the function behind share links, and the private `scans` storage bucket.
-3. In **Authentication → Providers → Email**, either keep email confirmation on (new users must click a link) or turn it off for quick local testing.
+3. In **Authentication → Sign In / Providers**, turn on **Allow anonymous sign-ins**. The app has no login page: each visitor gets an anonymous account, and their scans stay private to that browser.
 
 If your project was created from an older `schema.sql`, run only the migrations it's missing, in order: `supabase/migrations/002_reviews_and_delete.sql`, then `003_cases_and_shares.sql`, then `004_series.sql`. Without 003 the app still analyses scans, but cases and share links stay switched off. Without 004, full scans can be viewed as samples but not uploaded.
 
@@ -106,7 +106,7 @@ In a second terminal, from the project root:
 npm run dev
 ```
 
-Open http://localhost:3000, create an account, and try a sample scan. If port 3000 is in use, run `npx next dev -p 3001`.
+Open http://localhost:3000 and try a sample scan. There is no login: each browser gets its own private anonymous account automatically. If port 3000 is in use, run `npx next dev -p 3001`.
 
 ## Deploying
 
@@ -123,7 +123,7 @@ app/
   scan/[id]/report/     Printable report (Save as PDF)
   cases/                Patient cases, timeline and side-by-side comparison
   share/[token]/        Read-only shared scan, no sign-in
-  login/page.tsx        Sign in and sign up
+  login/page.tsx        Redirects to the app (there is no login)
   api/analyze/route.ts  Sends an uploaded scan to the model server and saves the results
   api/tests/route.ts    Lists the tests the model server offers
 components/             UI pieces (Stage is the scan with floating readouts; ScanImage draws scans, marks and
