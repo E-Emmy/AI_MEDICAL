@@ -237,12 +237,14 @@ export default function SeriesViewer({ url, kind, results, showFindings = true, 
     n.document.labels = [];
     if (organs?.labels && organsLoaded && view === "3d") {
       n.opts.legendBackgroundColor = [0.02, 0.03, 0.05, 0.75];
-      const shown = organs.list.filter((o) => organs.visible.has(o.id)).sort((a, b) => b.ml - a.ml).slice(0, 18);
+      // Narrow (phone) viewers get smaller labels and fewer of them, so the model stays visible.
+      const narrow = (canvas.current?.clientWidth ?? 800) < 560;
+      const shown = organs.list.filter((o) => organs.visible.has(o.id)).sort((a, b) => b.ml - a.ml).slice(0, narrow ? 8 : 18);
       for (const o of shown) {
         const c = [...o.color.map((v) => v / 255), 1];
         const mm = n.frac2mm(o.center);
         n.addLabel(o.name, {
-          textColor: [1, 1, 1, 1], textScale: 1.05, lineWidth: 2, lineColor: c,
+          textColor: [1, 1, 1, 1], textScale: narrow ? 0.6 : 1.05, lineWidth: narrow ? 1 : 2, lineColor: c,
           lineTerminator: "circle" as never, bulletScale: 1, bulletColor: c,
         } as never, [mm[0], mm[1], mm[2]], undefined, () => onOrganAtRef.current?.(o.id));
       }

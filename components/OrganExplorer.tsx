@@ -21,6 +21,11 @@ const rgb = (c: [number, number, number]) => `rgb(${c.join(",")})`;
 
 export default function OrganExplorer({ organs, visible, onVisible, selected, onSelect, hideScan, onHideScan, labels, onLabels }: Props) {
   const [query, setQuery] = useState("");
+  // On phones the panel is a bottom sheet opened from a floating button, so the viewer keeps the screen.
+  const [sheet, setSheet] = useState(false);
+  const isPhone = () => typeof window !== "undefined" && window.matchMedia("(max-width: 1000px)").matches;
+  // Picking a part on a phone closes the sheet so the viewer can show it.
+  const pick = (o: PresentOrgan) => { onSelect(o); if (isPhone()) setSheet(false); };
   const current = organs.find((o) => o.id === selected) ?? null;
   const q = query.trim().toLowerCase();
   const matches = (o: PresentOrgan) => !q || o.name.toLowerCase().includes(q) || o.group.toLowerCase().includes(q);
@@ -32,10 +37,22 @@ export default function OrganExplorer({ organs, visible, onVisible, selected, on
   };
 
   return (
-    <div className="card organ-explorer">
+    <>
+    <button type="button" className="organ-fab" onClick={() => setSheet(true)} aria-haspopup="dialog" aria-expanded={sheet}>
+      {current && <span className="swatch" style={{ background: rgb(current.color) }} />}
+      <span className="organ-fab-text">
+        <strong>{current ? current.name : "Anatomy"}</strong>
+        <span>{current ? "Tap for details and parts" : `${visible.size} of ${organs.length} parts shown · tap to explore`}</span>
+      </span>
+      <span className="organ-fab-icon" aria-hidden="true">▴</span>
+    </button>
+    {sheet && <div className="organ-backdrop" onClick={() => setSheet(false)} aria-hidden="true" />}
+    <div className={sheet ? "card organ-explorer sheet-open" : "card organ-explorer"} role={sheet ? "dialog" : undefined} aria-label="Anatomy">
+      <span className="sheet-grip" aria-hidden="true" />
       <div className="organ-head">
         <h2 className="card-title">Anatomy</h2>
         <span className="organ-count">{visible.size} of {organs.length} shown</span>
+        <button type="button" className="sheet-close" onClick={() => setSheet(false)} aria-label="Close">✕</button>
       </div>
 
       {current ? (
@@ -45,11 +62,11 @@ export default function OrganExplorer({ organs, visible, onVisible, selected, on
           <p className="organ-card-about">{current.about}</p>
           <div className="organ-actions">
             <button type="button" className="btn btn-quiet btn-sm" onClick={() => onVisible(new Set([current.id]))}>Show only this</button>
-            <button type="button" className="btn btn-quiet btn-sm" onClick={() => onSelect(current)}>Go to it</button>
+            <button type="button" className="btn btn-quiet btn-sm" onClick={() => pick(current)}>Go to it</button>
           </div>
         </div>
       ) : (
-        <p className="organ-card organ-card-empty">Hover over the scan, click a 3D label or pick a part below to learn what it does.</p>
+        <p className="organ-card organ-card-empty">Point at or tap the scan, tap a 3D label, or pick a part below to learn what it does.</p>
       )}
 
       <div className="organ-switches">
@@ -90,7 +107,7 @@ export default function OrganExplorer({ organs, visible, onVisible, selected, on
                   <li key={o.id} className={o.id === selected ? "on" : undefined}>
                     <input type="checkbox" aria-label={`Show ${o.name}`} checked={visible.has(o.id)} onChange={(e) => toggle([o.id], e.target.checked)} />
                     <span className="swatch" style={{ background: rgb(o.color) }} />
-                    <button type="button" onClick={() => onSelect(o)}>{o.name}</button>
+                    <button type="button" onClick={() => pick(o)}>{o.name}</button>
                     <span className="organ-ml">{ml(o.ml)}</span>
                   </li>
                 ))}
@@ -105,5 +122,6 @@ export default function OrganExplorer({ organs, visible, onVisible, selected, on
         simplified for education.
       </p>
     </div>
+    </>
   );
 }
