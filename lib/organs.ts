@@ -1,3 +1,4 @@
+// Bones use warm, saturated tones: pale near-white colours came out lavender under the 3D lighting.
 // The organ explorer: structures outlined by TotalSegmentator (its "total" task), grouped for display.
 // Several labels can share one entry (every rib is "Ribs"). Descriptions are short, plain-language
 // summaries for education; they are not medical advice and should be checked by a clinician.
@@ -68,21 +69,21 @@ export const ORGANS: Organ[] = [
     about: "Carry blood from the stomach, bowel and spleen to the liver, which processes nutrients before they reach the rest of the body." },
 
   // Bones and spine
-  { id: "ribs", name: "Ribs", group: "Bones and spine", color: [231, 222, 200], labels: ribs,
+  { id: "ribs", name: "Ribs", group: "Bones and spine", color: [236, 190, 112], labels: ribs,
     about: "Twelve pairs of curved bones that protect the heart and lungs and move with each breath." },
-  { id: "costal_cartilages", name: "Rib cartilage", group: "Bones and spine", color: [214, 211, 209],
+  { id: "costal_cartilages", name: "Rib cartilage", group: "Bones and spine", color: [222, 176, 120],
     about: "Flexible cartilage joining the front of the ribs to the breastbone, letting the chest expand when breathing." },
-  { id: "sternum", name: "Sternum (breastbone)", group: "Bones and spine", color: [245, 236, 214],
+  { id: "sternum", name: "Sternum (breastbone)", group: "Bones and spine", color: [236, 210, 158],
     about: "The flat bone at the front of the chest that the ribs attach to; it shields the heart." },
-  { id: "vertebrae", name: "Spine (vertebrae)", group: "Bones and spine", color: [253, 230, 138], labels: vertebrae,
+  { id: "vertebrae", name: "Spine (vertebrae)", group: "Bones and spine", color: [240, 200, 110], labels: vertebrae,
     about: "The stack of bones that supports the body and protects the spinal cord. The chest section (thoracic spine) has 12 vertebrae, one for each pair of ribs." },
   { id: "spinal_cord", name: "Spinal cord", group: "Bones and spine", color: [250, 204, 21],
     about: "The bundle of nerves running inside the spine, carrying signals between the brain and the body." },
-  { id: "clavicles", name: "Collarbones", group: "Bones and spine", color: [226, 232, 240], labels: ["clavicula_left", "clavicula_right"],
+  { id: "clavicles", name: "Collarbones", group: "Bones and spine", color: [218, 186, 132], labels: ["clavicula_left", "clavicula_right"],
     about: "Connect the shoulders to the breastbone and hold the arms away from the body." },
-  { id: "scapulae", name: "Shoulder blades", group: "Bones and spine", color: [203, 213, 225], labels: ["scapula_left", "scapula_right"],
+  { id: "scapulae", name: "Shoulder blades", group: "Bones and spine", color: [208, 176, 124], labels: ["scapula_left", "scapula_right"],
     about: "Flat triangular bones on the upper back that anchor the shoulder and arm muscles." },
-  { id: "humeri", name: "Upper arm bones", group: "Bones and spine", color: [241, 245, 249], labels: ["humerus_left", "humerus_right"],
+  { id: "humeri", name: "Upper arm bones", group: "Bones and spine", color: [230, 204, 150], labels: ["humerus_left", "humerus_right"],
     about: "The humerus, the long bone of the upper arm; only the top end is usually seen on a chest CT." },
   { id: "back_muscles", name: "Back muscles", group: "Bones and spine", color: [190, 120, 110], labels: ["autochthon_left", "autochthon_right"],
     about: "The deep muscles alongside the spine that keep the back upright and help it bend and twist." },
