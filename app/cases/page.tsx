@@ -20,6 +20,7 @@ export default function Cases() {
   const [formErr, setFormErr] = useState("");
 
   useEffect(() => {
+    if (session === null) return setErr("Patient cases are saved to an account, and sign-in isn't available right now. Try again later.");
     if (!session) return;
     (async () => {
       const c = await supabase.from("cases").select("id,label,note,created_at").order("created_at", { ascending: false });

@@ -4,10 +4,11 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 
 // Opening the site needs no sign-in. Each section (New analysis, Full scans, Anatomy lab) asks for one
-// when it is opened, through the sign-in box in components/SignInGate.tsx. Pages wait here until there
-// is a session, and pick it up as soon as someone signs in.
+// when it is opened, through the sign-in box in components/SignInGate.tsx. Pages pick the session up as
+// soon as someone signs in. undefined means it's still being read; null means nobody is signed in, and
+// pages then show what works without an account (the samples).
 export function useSession() {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<Session | null | undefined>(undefined);
   useEffect(() => {
     let live = true;
     supabase.auth.getSession().then(({ data }) => { if (live) setSession(data.session); });
@@ -18,4 +19,4 @@ export function useSession() {
 }
 
 // True for a demo session made without an account (the fallback when a demo account doesn't exist yet).
-export const isAnonymous = (s: Session | null) => !!s?.user?.is_anonymous;
+export const isAnonymous = (s: Session | null | undefined) => !!s?.user?.is_anonymous;

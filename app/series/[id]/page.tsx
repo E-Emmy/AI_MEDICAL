@@ -53,7 +53,11 @@ export default function FullScan({ params }: { params: Promise<{ id: string }> }
   }, [sample?.organs]);
 
   useEffect(() => {
-    if (!session) return;
+    // Samples are public data and open without an account; your own scans need one.
+    if (!session && !sample) {
+      if (session === null) setErr("Sign in to open your own full scans. The samples open without an account.");
+      return;
+    }
     (async () => {
       try {
         let key = sample?.key;

@@ -140,7 +140,11 @@ export default function Upload() {
   }
 
   async function analyse() {
-    if (!file || !png || !session || !testId) return;
+    if (!file || !png || !testId) return;
+    if (!session) {
+      setErrTitle("Sign-in isn't available right now");
+      return setErr("Analyses are saved to an account, and the demo account can't be reached at the moment. Try again later, or open Full scans and the Anatomy lab, which work without one.");
+    }
     setBusy(true); setErr(""); setErrTitle("");
     try {
       const uid = session.user.id;

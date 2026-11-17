@@ -3,7 +3,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { roleOf, type RoleInfo } from "@/lib/roles";
+import { findRole, roleOf, type RoleInfo } from "@/lib/roles";
+import { isDemoStudent, onDemoStudent, setDemoStudent } from "@/lib/demoStudent";
 import Logo from "./Logo";
 import ThemeToggle from "./ThemeToggle";
 
@@ -27,12 +28,18 @@ export default function Header() {
     const { data } = supabase.auth.onAuthStateChange((_e, s) => { setSignedIn(!!s); setRole(roleOf(s)); });
     return () => data.subscription.unsubscribe();
   }, []);
+  // The stand-in student sign-in (lib/demoStudent.ts), used when Supabase's student account can't be reached.
+  const [demo, setDemo] = useState(false);
+  useEffect(() => { setDemo(isDemoStudent()); return onDemoStudent(() => setDemo(isDemoStudent())); }, []);
+  const shownRole = role ?? (demo ? findRole("student") : undefined);
+  const isIn = signedIn === null ? null : signedIn || demo;
   // On phones the tabs scroll sideways; keep the current one in view.
   useEffect(() => {
     document.querySelector('.pills a[aria-current="page"]')?.scrollIntoView({ block: "nearest", inline: "center" });
   }, [path]);
   if (path === "/login") return null;
   async function signOut() {
+    setDemoStudent(false);
     await supabase.auth.signOut();
     router.replace("/");
   }
@@ -53,9 +60,9 @@ export default function Header() {
         )}
         <div className="topbar-end">
           <ThemeToggle />
-          {!shared && signedIn && role && <span className="role-chip">{role.title}</span>}
-          {!shared && signedIn === false && <Link className="btn btn-quiet btn-sm" href="/login">Student sign-in</Link>}
-          {!shared && signedIn && <button className="btn btn-quiet btn-sm" onClick={signOut}>Sign out</button>}
+          {!shared && isIn && shownRole && <span className="role-chip">{shownRole.title}</span>}
+          {!shared && isIn === false && <Link className="btn btn-quiet btn-sm" href="/login">Student sign-in</Link>}
+          {!shared && isIn && <button className="btn btn-quiet btn-sm" onClick={signOut}>Sign out</button>}
         </div>
       </header>
       <p className="notice">Decision support only. Results are not a diagnosis and must be reviewed by a qualified clinician.</p>

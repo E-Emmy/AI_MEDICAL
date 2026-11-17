@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { findRole, sectionForPath, type Role } from "@/lib/roles";
+import { isDemoStudent, onDemoStudent, setDemoStudent } from "@/lib/demoStudent";
 
 const Icon = ({ d }: { d: string }) => (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
@@ -15,7 +16,7 @@ const CHECK = "M5 12.5l4.5 4.5L19 7.5";
 const ARROW = "M5 12h14M13 6l6 6-6 6";
 
 // The sign-in box, shown only over the Anatomy lab, with the student demo account already filled in so
-// students only press "Sign in". New analysis and Full scans open without it (see `quiet` below).
+// students only press "Sign in". "Continue without signing in" closes it and keeps them in the lab. New analysis and Full scans open without it (see `quiet` below).
 export default function SignInGate() {
   const path = usePathname();
   const router = useRouter();
@@ -29,6 +30,9 @@ export default function SignInGate() {
   const [error, setError] = useState("");
   // Sections where the person chose to carry on with the role they already have.
   const [kept, setKept] = useState<Role[]>([]);
+  // Signed in with the stand-in student sign-in (lib/demoStudent.ts), when Supabase's demo account is missing.
+  const [demoStudent, setDemo] = useState(false);
+  useEffect(() => { setDemo(isDemoStudent()); return onDemoStudent(() => setDemo(isDemoStudent())); }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -47,14 +51,16 @@ export default function SignInGate() {
   // without a session is signed in quietly with the clinician demo account (the pages need a session
   // to save and load scans). Only the Anatomy lab shows the sign-in box, for the student account.
   const quiet = need?.id === "doctor";
-  const open = !!need && !quiet && session !== undefined && (!session || (current?.id !== need.id && !kept.includes(need.id)));
+  const open = !!need && !quiet && session !== undefined && !(need.id === "student" && demoStudent)
+    && !kept.includes(need.id) && (!session || current?.id !== need.id);
 
   useEffect(() => {
     if (!quiet || session !== null) return;
     (async () => {
       const demo = findRole("doctor")!.demo;
       const { error } = await supabase.auth.signInWithPassword(demo);
-      if (error) await supabase.auth.signInAnonymously();
+      // Without the demo account the pages still open their samples; uploads wait for an account.
+      if (error) { const anon = await supabase.auth.signInAnonymously(); if (anon.error) return; }
       const { data } = await supabase.auth.getUser();
       if (data.user && data.user.user_metadata?.role !== "doctor") await supabase.auth.updateUser({ data: { role: "doctor" } });
     })();
@@ -86,12 +92,14 @@ export default function SignInGate() {
         setBusy(false);
         return setError(/invalid login/i.test(err.message) ? "Wrong email or password." : err.message);
       }
-      // The demo account hasn't been made in Supabase yet: fall back to a private demo session in this browser.
+      // The demo account can't be reached in Supabase: try a private session in this browser, and if that's
+      // switched off too, sign the student in on this device only (the lab only uses public sample data).
       if (!session?.user?.is_anonymous) {
         const { error: anonErr } = await supabase.auth.signInAnonymously();
         if (anonErr) {
+          if (role.id === "student") { setDemoStudent(true); setBusy(false); return; }
           setBusy(false);
-          return setError("The demo account isn't set up yet. Add it in Supabase (Authentication > Users), or switch on anonymous sign-ins.");
+          return setError("Sign-in isn't available right now. Try again later.");
         }
       }
     }
@@ -160,7 +168,7 @@ export default function SignInGate() {
 
           <p className="gate-secure">Demo data only. Scans stay private to the account.</p>
           <p className="gate-foot">Have your own account? <Link href="/login">Sign in here</Link></p>
-          <p className="gate-foot"><Link href="/">Continue without signing in</Link></p>
+          <p className="gate-foot"><button type="button" className="gate-link" onClick={() => setKept([...kept, role.id])}>Continue without signing in</button></p>
         </form>
       </div>
     </div>

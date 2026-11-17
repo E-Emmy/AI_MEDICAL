@@ -5,13 +5,25 @@ import { downloadUrl, remove, uploadUrl, viewUrl } from "@/lib/r2";
 // Hands out short-lived R2 links for full scans. Each person's scans live under series/<their id>/,
 // so the key itself says whose it is; samples/ can be viewed by anyone signed in.
 export async function POST(req: NextRequest) {
+  const { action, key } = await req.json().catch(() => ({}));
+  // The sample scans are public research data, so they open (and download) without an account.
+  try {
+    if (action === "view" && typeof key === "string" && /^samples\/[\w-]+\.nii\.gz$/.test(key)) {
+      return NextResponse.json({ url: await viewUrl(key) });
+    }
+    const dl = action === "download" && typeof key === "string" && key.match(/^samples\/downloads\/([\w-]+\.zip)$/);
+    if (dl) return NextResponse.json({ url: await downloadUrl(key, dl[1]) });
+  } catch (e) {
+    const msg = e instanceof Error && e.message.includes("is not set") ? e.message : "The scan storage couldn't be reached. Try again.";
+    return NextResponse.json({ error: msg }, { status: 503 });
+  }
+
   const token = req.headers.get("authorization")?.replace("Bearer ", "");
   if (!token) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
   const { data: { user } } = await sb.auth.getUser(token);
   if (!user) return NextResponse.json({ error: "Invalid session" }, { status: 401 });
 
-  const { action, key } = await req.json().catch(() => ({}));
   const own = typeof key === "string" && key.startsWith(`series/${user.id}/`) && /^[\w/-]+\.nii\.gz$/.test(key);
 
   try {

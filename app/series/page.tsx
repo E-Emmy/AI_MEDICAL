@@ -14,6 +14,7 @@ export default function FullScans() {
   const [err, setErr] = useState("");
 
   useEffect(() => {
+    if (session === null) return setRows([]);
     if (!session) return;
     supabase.from("series").select(SERIES_COLUMNS).order("created_at", { ascending: false }).then(({ data, error }) => {
       if (error) return setErr(error.code === "PGRST205" ? SERIES_MISSING : error.message);
@@ -35,7 +36,8 @@ export default function FullScans() {
         <h2 id="mine-h" className="section-title">Your full scans</h2>
         {err && <div className="callout bad" role="alert"><strong>Full scans couldn&apos;t be loaded</strong>{err}</div>}
         {!err && !rows && <p className="muted">Loading…</p>}
-        {rows && rows.length === 0 && <p className="empty">No full scans yet. Upload a folder of DICOM slices or a .nii.gz file, or open a sample below.</p>}
+        {rows && rows.length === 0 && session === null && <p className="empty">Your own full scans appear here once you&apos;re signed in. The samples below open without an account.</p>}
+        {rows && rows.length === 0 && session !== null && <p className="empty">No full scans yet. Upload a folder of DICOM slices or a .nii.gz file, or open a sample below.</p>}
         {rows && rows.length > 0 && (
           <ul className="case-list">
             {rows.map((r) => (

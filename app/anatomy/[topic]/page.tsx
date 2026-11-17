@@ -2,7 +2,6 @@
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useSession } from "@/lib/useSession";
 import OrganExplorer from "@/components/OrganExplorer";
 import { TOPICS, findTopic } from "@/lib/anatomy";
 import { presentOrgans, type OrganStat, type PresentOrgan } from "@/lib/organs";
@@ -17,7 +16,6 @@ const SCAN = findSeriesSample("sample-chest-ct")!;
 export default function AnatomyTopic({ params }: { params: Promise<{ topic: string }> }) {
   const { topic: id } = use(params);
   const topic = findTopic(id);
-  const session = useSession();
   const [url, setUrl] = useState("");
   const [err, setErr] = useState("");
   const [list, setList] = useState<PresentOrgan[] | null>(null);
@@ -27,10 +25,10 @@ export default function AnatomyTopic({ params }: { params: Promise<{ topic: stri
   const [labels, setLabels] = useState(true);
   const [focus, setFocus] = useState<{ pos: [number, number, number]; n: number } | null>(null);
 
+  // The sample scan is public data, so it opens with or without an account.
   useEffect(() => {
-    if (!session) return;
     seriesLink("view", SCAN.key).then((r) => setUrl(r.url!)).catch((e) => setErr(e instanceof Error ? e.message : String(e)));
-  }, [session]);
+  }, []);
 
   useEffect(() => {
     if (!topic) return;
