@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import { findRole, roleForPath, type Role } from "@/lib/roles";
+import { findRole, sectionForPath, type Role } from "@/lib/roles";
 
 const Icon = ({ d }: { d: string }) => (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
@@ -14,13 +14,15 @@ const LOCK = "M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3";
 const CHECK = "M5 12.5l4.5 4.5L19 7.5";
 const ARROW = "M5 12h14M13 6l6 6-6 6";
 
-// The sign-in box. Opening the site needs no sign-in; it appears over a section (New analysis, Full scans,
-// Anatomy lab) the first time someone opens it, with that section's demo account already filled in, so
-// they only press "Sign in". Someone signed in as another role can switch or carry on as they are.
+// The sign-in box. Opening the site needs no sign-in; it appears over a section the first time someone
+// opens it, with the demo account already filled in, so they only press "Sign in". New analysis and Full
+// scans share the clinician account, so one sign-in opens both; the Anatomy lab has the student account.
+// Someone signed in with the other role can switch or carry on as they are.
 export default function SignInGate() {
   const path = usePathname();
   const router = useRouter();
-  const need = roleForPath(path);
+  const section = sectionForPath(path);
+  const need = section ? findRole(section.role) : undefined;
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,7 +53,7 @@ export default function SignInGate() {
     return () => { document.body.style.overflow = ""; };
   }, [open]);
 
-  if (!open || !need) return null;
+  if (!open || !need || !section) return null;
   const role = need;
 
   async function setRole() {
@@ -90,12 +92,12 @@ export default function SignInGate() {
     <div className="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
       <div className="gate-box">
         <aside className="gate-art">
-          <img src={role.image} alt="" />
+          <img src={section.image} alt="" />
           <div className="gate-art-text">
-            <span className="gate-role">For {role.title.toLowerCase()}s</span>
-            <p className="gate-art-title">{role.section}</p>
+            <span className="gate-role">{section.audience}</span>
+            <p className="gate-art-title">{section.title}</p>
             <ul>
-              {role.features.map((f) => <li key={f}><Icon d={CHECK} />{f}</li>)}
+              {section.features.map((f) => <li key={f}><Icon d={CHECK} />{f}</li>)}
             </ul>
           </div>
         </aside>
@@ -103,8 +105,8 @@ export default function SignInGate() {
         <form className="gate-form" onSubmit={signIn} noValidate>
           <button type="button" className="gate-close" aria-label="Close" onClick={() => router.push("/")}>×</button>
           <span className="gate-kicker">Orbi<span className="brand-accent">nova</span> Imaging</span>
-          <h2 id="gate-title">Sign in to {role.section}</h2>
-          <p className="gate-sub">{role.blurb}</p>
+          <h2 id="gate-title">Sign in to {section.title}</h2>
+          <p className="gate-sub">{section.blurb}{role.id === "doctor" && " One clinician sign-in opens both New analysis and Full scans."}</p>
 
           {other && (
             <p className="gate-note">You&apos;re signed in as a {other.title.toLowerCase()}. Sign in as a {role.title.toLowerCase()} for this section, or carry on as you are.</p>
