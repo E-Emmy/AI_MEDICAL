@@ -54,7 +54,7 @@ export default function Header() {
         <div className="topbar-end">
           <ThemeToggle />
           {!shared && signedIn && role && <span className="role-chip">{role.title}</span>}
-          {!shared && signedIn === false && <Link className="btn btn-quiet btn-sm" href="/login">Sign in</Link>}
+          {!shared && signedIn === false && <Link className="btn btn-quiet btn-sm" href="/login">Student sign-in</Link>}
           {!shared && signedIn && <button className="btn btn-quiet btn-sm" onClick={signOut}>Sign out</button>}
         </div>
       </header>

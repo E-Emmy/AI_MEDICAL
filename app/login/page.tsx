@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
-import { ROLES, findRole, type Role } from "@/lib/roles";
+import { findRole } from "@/lib/roles";
 
 type Msg = { type: "err" | "ok"; text: string } | null;
 
@@ -24,15 +24,14 @@ export default function Login() {
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<Msg>(null);
-  const [role, setRole] = useState<Role>("doctor");
+  // Only students sign in here; clinicians sign up on the merged main site and open their sections without a login.
+  const role = "student" as const;
 
-  // Saves the role on the account (if it doesn't have one, or the person picked another) and goes to its section.
-  async function goTo(r: Role, keepExisting: boolean) {
+  // Marks the account as a student one and opens the Anatomy lab.
+  async function goTo() {
     const { data } = await supabase.auth.getUser();
-    const current = findRole(data.user?.user_metadata?.role);
-    const chosen = keepExisting && current ? current.id : r;
-    if (current?.id !== chosen) await supabase.auth.updateUser({ data: { role: chosen } });
-    router.push(findRole(chosen)!.home);
+    if (data.user?.user_metadata?.role !== role) await supabase.auth.updateUser({ data: { role } });
+    router.push(findRole(role)!.home);
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -46,8 +45,7 @@ export default function Login() {
     if (mode === "in") {
       const { error } = await supabase.auth.signInWithPassword(creds);
       if (error) { setBusy(false); return setMsg({ type: "err", text: friendly(error.message) }); }
-      // An account keeps the role it was created with; older accounts without one get the role picked here.
-      return goTo(role, true);
+      return goTo();
     }
     const { data, error } = await supabase.auth.signUp({ ...creds, options: { data: { role } } });
     setBusy(false);
@@ -62,8 +60,8 @@ export default function Login() {
       <aside className="auth-brand">
         <span className="brand"><Logo /><span>Orbi<span className="brand-accent">nova</span> Imaging</span></span>
         <div>
-          <h2>See what the model marks on your scans.</h2>
-          <p>Upload an X-ray or CT image, review the findings and the regions behind them, and keep every result private to your account.</p>
+          <h2>Learn anatomy on real 3D scans.</h2>
+          <p>Explore labelled organs, bones and vessels in full CT scans. New analysis and Full scans open without signing in.</p>
         </div>
         <div className="lightbox">
           <div className="frame">
@@ -86,28 +84,18 @@ export default function Login() {
 
       <section className="auth-form">
         <form onSubmit={onSubmit} noValidate>
-          <h1>{mode === "in" ? "Welcome back" : "Create your account"}</h1>
-          <p className="auth-sub">{mode === "in" ? "Sign in to see your analyses." : "It takes less than a minute."}</p>
+          <h1>{mode === "in" ? "Student sign-in" : "Create a student account"}</h1>
+          <p className="auth-sub">{mode === "in" ? "Sign in to open the Anatomy lab." : "It takes less than a minute."}</p>
 
           <div className="seg" role="tablist">
             <button type="button" role="tab" aria-selected={mode === "in"} className={mode === "in" ? "on" : ""} onClick={() => { setMode("in"); setMsg(null); }}>Sign in</button>
             <button type="button" role="tab" aria-selected={mode === "up"} className={mode === "up" ? "on" : ""} onClick={() => { setMode("up"); setMsg(null); }}>Create account</button>
           </div>
 
-          <fieldset className="role-pick">
-            <legend>Who are you?</legend>
-            {ROLES.map((r) => (
-              <label key={r.id} className={role === r.id ? "role-card on" : "role-card"}>
-                <input type="radio" name="role" value={r.id} checked={role === r.id} onChange={() => setRole(r.id)} />
-                <strong>{r.title}</strong>
-                <span>{r.blurb}</span>
-              </label>
-            ))}
-          </fieldset>
 
           <div className="field">
             <label htmlFor="email">Email</label>
-            <input id="email" type="email" autoComplete="email" inputMode="email" placeholder="you@hospital.org" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input id="email" type="email" autoComplete="email" inputMode="email" placeholder="you@university.edu" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
 
           <div className="field">
