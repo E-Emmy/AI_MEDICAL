@@ -14,10 +14,8 @@ const LOCK = "M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3";
 const CHECK = "M5 12.5l4.5 4.5L19 7.5";
 const ARROW = "M5 12h14M13 6l6 6-6 6";
 
-// The sign-in box. Opening the site needs no sign-in; it appears over a section the first time someone
-// opens it, with the demo account already filled in, so they only press "Sign in". New analysis and Full
-// scans share the clinician account, so one sign-in opens both; the Anatomy lab has the student account.
-// Someone signed in with the other role can switch or carry on as they are.
+// The sign-in box, shown only over the Anatomy lab, with the student demo account already filled in so
+// students only press "Sign in". New analysis and Full scans open without it (see `quiet` below).
 export default function SignInGate() {
   const path = usePathname();
   const router = useRouter();
@@ -45,7 +43,22 @@ export default function SignInGate() {
   }, [need]);
 
   const current = findRole(session?.user?.user_metadata?.role);
-  const open = !!need && session !== undefined && (!session || (current?.id !== need.id && !kept.includes(need.id)));
+  // New analysis and Full scans never ask: clinicians sign up on the merged main site, so here anyone
+  // without a session is signed in quietly with the clinician demo account (the pages need a session
+  // to save and load scans). Only the Anatomy lab shows the sign-in box, for the student account.
+  const quiet = need?.id === "doctor";
+  const open = !!need && !quiet && session !== undefined && (!session || (current?.id !== need.id && !kept.includes(need.id)));
+
+  useEffect(() => {
+    if (!quiet || session !== null) return;
+    (async () => {
+      const demo = findRole("doctor")!.demo;
+      const { error } = await supabase.auth.signInWithPassword(demo);
+      if (error) await supabase.auth.signInAnonymously();
+      const { data } = await supabase.auth.getUser();
+      if (data.user && data.user.user_metadata?.role !== "doctor") await supabase.auth.updateUser({ data: { role: "doctor" } });
+    })();
+  }, [quiet, session]);
 
   useEffect(() => {
     if (!open) return;
