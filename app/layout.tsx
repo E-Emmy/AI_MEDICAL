@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Outfit } from "next/font/google";
 import Header from "@/components/Header";
+import SignInGate from "@/components/SignInGate";
 
 const sans = Outfit({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Header />
         <main>{children}</main>
+        <SignInGate />
       </body>
     </html>
   );

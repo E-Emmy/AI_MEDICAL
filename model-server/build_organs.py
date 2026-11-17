@@ -26,7 +26,9 @@ from totalsegmentator.map_to_binary import class_map
 
 # Tiny specks are segmentation noise, not organs worth listing.
 MIN_ML = 0.5
-# Label values for the extra structures, above the 117 of the main task.
+# Gap between empty space (0) and the first organ; see the shift in main().
+OFFSET = 10
+# Label values for the extra structures, above the 117 of the main task (before the shift).
 EXTRA = {"lung_trachea_bronchia": 201, "lung_vessels": 202}
 LUNG_LOBES = {"lung_upper_lobe_left", "lung_lower_lobe_left", "lung_upper_lobe_right", "lung_middle_lobe_right", "lung_lower_lobe_right"}
 
@@ -41,10 +43,11 @@ def main(src, prefix, extra_dir=None):
             mask = np.asarray(nib.load(f"{extra_dir}/{name}.nii.gz").dataobj) > 0
             labels[mask & lung] = value
             names[value] = name
-    # Shift every label up by one so value 1 is never used. NiiVue draws empty space (0) in label 1's
-    # colour, so the viewer keeps 1 as a see-through placeholder. Names keep their TotalSegmentator value + 1.
-    labels = np.where(labels > 0, labels + 1, 0).astype(np.uint8)
-    names = {k + 1: v for k, v in names.items()}
+    # Shift every label up by OFFSET so values 1..OFFSET-1 are never used. NiiVue can draw empty space (0)
+    # in the colour of the lowest label (label 1 in 2D, the next one up in 3D), so the viewer keeps the
+    # values below OFFSET as see-through placeholders. Names keep their TotalSegmentator value + OFFSET.
+    labels = np.where(labels > 0, labels + OFFSET, 0).astype(np.uint8)
+    names = {k + OFFSET: v for k, v in names.items()}
     canon = nib.as_closest_canonical(nib.Nifti1Image(labels, img.affine))
     data = np.asarray(canon.dataobj)
     voxel_ml = float(np.prod(canon.header.get_zooms()[:3])) / 1000

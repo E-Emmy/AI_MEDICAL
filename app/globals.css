@@ -2302,6 +2302,7 @@ select:focus,
 /* Organ explorer */
 .organ-explorer {
   position: sticky;
+  z-index: 2;
   top: 16px;
   display: grid;
   gap: 12px;
@@ -3012,4 +3013,388 @@ a.sample {
 .auth-skip a {
   color: var(--accent);
   font-weight: 600;
+}
+
+/* Demo roles on the login page */
+.role-pick {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+}
+.role-pick legend {
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.role-card {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px 12px 40px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.role-card input {
+  position: absolute;
+  left: 14px;
+  top: 15px;
+  accent-color: var(--accent);
+}
+.role-card strong {
+  font-size: 15px;
+}
+.role-card span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.role-card.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.role-demo {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.role-demo-title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+.role-demo-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+/* The current role in the header, which opens the role choice. */
+.role-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.role-chip span {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* Home page: the three sections */
+.section-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+/* Sign-in box over a section, with the demo account filled in */
+@keyframes gate-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes gate-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(6, 12, 22, 0.6);
+  backdrop-filter: blur(8px);
+  overflow-y: auto;
+  animation: gate-fade 0.2s ease-out;
+}
+.gate-box {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  width: 100%;
+  max-width: 860px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--surface);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+  animation: gate-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.gate-art {
+  position: relative;
+  min-height: 100%;
+  background: #05080d;
+  color: #fff;
+}
+.gate-art img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  transform: scale(1.04);
+  animation: gate-zoom 12s ease-out forwards;
+}
+@keyframes gate-zoom {
+  to { transform: scale(1.12); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gate-art img { animation: none; }
+}
+/* A deep blue wash so every picture sits in the app's colours, darker at the bottom for the text. */
+.gate-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(8, 20, 48, 0.15) 0%, rgba(8, 20, 48, 0.35) 45%, rgba(5, 12, 28, 0.94) 88%),
+    radial-gradient(120% 80% at 0% 100%, rgba(43, 99, 240, 0.35), transparent 60%);
+}
+.gate-art-text {
+  position: absolute;
+  z-index: 1;
+  left: 28px;
+  right: 28px;
+  bottom: 28px;
+}
+.gate-art-title {
+  margin: 10px 0 14px;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.gate-art ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.88);
+}
+.gate-art li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gate-art li svg {
+  flex: none;
+  padding: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  width: 20px;
+  height: 20px;
+}
+.gate-role {
+  display: inline-block;
+  padding: 5px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(6px);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.gate-form {
+  position: relative;
+  padding: 36px 36px 28px;
+}
+.gate-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.gate-form h2 {
+  margin: 8px 0 6px;
+  font-size: 26px;
+  letter-spacing: -0.01em;
+}
+.gate-sub {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.gate-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.gate-close:hover {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.gate-note {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--flag-soft);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.gate-demo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 14px;
+  background: var(--accent-soft);
+}
+.gate-demo strong {
+  display: block;
+  font-size: 14px;
+}
+.gate-demo small {
+  color: var(--muted);
+  font-size: 13px;
+}
+.gate-avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+.gate-field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.gate-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--muted);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.gate-input:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+  color: var(--accent);
+}
+.gate-input input {
+  flex: 1;
+  min-width: 0;
+  height: 46px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+}
+.gate-eye {
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.gate-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 48px;
+  margin-top: 6px;
+  font-size: 15px;
+}
+.gate-secure {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.gate-foot {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+.gate-foot a {
+  color: var(--accent);
+  font-weight: 600;
+}
+@media (max-width: 720px) {
+  .gate {
+    place-items: end center;
+    padding: 0;
+  }
+  .gate-box {
+    grid-template-columns: 1fr;
+    max-height: 100dvh;
+    overflow-y: auto;
+    border-radius: 22px 22px 0 0;
+  }
+  .gate-art {
+    height: 150px;
+    min-height: 0;
+  }
+  .gate-art-text {
+    left: 20px;
+    bottom: 16px;
+  }
+  .gate-art-title {
+    margin: 6px 0 0;
+    font-size: 22px;
+  }
+  .gate-art ul {
+    display: none;
+  }
+  .gate-form {
+    padding: 22px 20px calc(20px + env(safe-area-inset-bottom));
+  }
+  .gate-form h2 {
+    font-size: 22px;
+  }
+  .gate-close {
+    top: 10px;
+    right: 10px;
+  }
 }

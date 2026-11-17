@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
+import { ROLES, findRole, type Role } from "@/lib/roles";
 
 type Msg = { type: "err" | "ok"; text: string } | null;
 
@@ -23,6 +24,16 @@ export default function Login() {
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<Msg>(null);
+  const [role, setRole] = useState<Role>("doctor");
+
+  // Saves the role on the account (if it doesn't have one, or the person picked another) and goes to its section.
+  async function goTo(r: Role, keepExisting: boolean) {
+    const { data } = await supabase.auth.getUser();
+    const current = findRole(data.user?.user_metadata?.role);
+    const chosen = keepExisting && current ? current.id : r;
+    if (current?.id !== chosen) await supabase.auth.updateUser({ data: { role: chosen } });
+    router.push(findRole(chosen)!.home);
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,14 +45,14 @@ export default function Login() {
     const creds = { email: email.trim(), password };
     if (mode === "in") {
       const { error } = await supabase.auth.signInWithPassword(creds);
-      setBusy(false);
-      if (error) return setMsg({ type: "err", text: friendly(error.message) });
-      return router.push("/");
+      if (error) { setBusy(false); return setMsg({ type: "err", text: friendly(error.message) }); }
+      // An account keeps the role it was created with; older accounts without one get the role picked here.
+      return goTo(role, true);
     }
-    const { data, error } = await supabase.auth.signUp(creds);
+    const { data, error } = await supabase.auth.signUp({ ...creds, options: { data: { role } } });
     setBusy(false);
     if (error) return setMsg({ type: "err", text: friendly(error.message) });
-    if (data.session) return router.push("/");
+    if (data.session) return router.push(findRole(role)!.home);
     setMsg({ type: "ok", text: "Account created. Check your email to confirm it, then sign in." });
     setMode("in");
   }
@@ -83,6 +94,17 @@ export default function Login() {
             <button type="button" role="tab" aria-selected={mode === "up"} className={mode === "up" ? "on" : ""} onClick={() => { setMode("up"); setMsg(null); }}>Create account</button>
           </div>
 
+          <fieldset className="role-pick">
+            <legend>Who are you?</legend>
+            {ROLES.map((r) => (
+              <label key={r.id} className={role === r.id ? "role-card on" : "role-card"}>
+                <input type="radio" name="role" value={r.id} checked={role === r.id} onChange={() => setRole(r.id)} />
+                <strong>{r.title}</strong>
+                <span>{r.blurb}</span>
+              </label>
+            ))}
+          </fieldset>
+
           <div className="field">
             <label htmlFor="email">Email</label>
             <input id="email" type="email" autoComplete="email" inputMode="email" placeholder="you@hospital.org" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -102,7 +124,7 @@ export default function Login() {
             {busy ? "Please wait…" : mode === "in" ? "Sign in" : "Create account"}
           </button>
         </form>
-          <p className="auth-skip"><Link href="/">Continue without signing in</Link>. Your scans stay private to this browser.</p>
+        <p className="auth-skip"><Link href="/">Continue without signing in</Link></p>
         <p className="auth-note">Decision support only. Results are not a diagnosis and must be reviewed by a qualified clinician.</p>
         <div style={{ marginTop: 16 }}><ThemeToggle /></div>
       </section>

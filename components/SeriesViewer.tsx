@@ -200,9 +200,12 @@ export default function SeriesViewer({ url, kind, results, showFindings = true, 
     const n = nvRef.current;
     const i = n ? n.volumes.findIndex((v) => v.name === ORGANS) : -1;
     if (!ready || !n || !organsLoaded || i < 0 || !organs) return;
-    // NiiVue paints empty space (0) in label 1's colour, so the organ map never uses 1 (model-server/build_organs.py)
-    // and 1 is a see-through placeholder here.
-    const R: number[] = [0, 0], G: number[] = [0, 0], B: number[] = [0, 0], A: number[] = [0, 0], I: number[] = [0, 1], labels: string[] = ["", ""];
+    // NiiVue can paint empty space (0) in the colour of the lowest label (label 1 in 2D, the next one up in
+    // 3D), so the organ map never uses values 1-9 (model-server/build_organs.py) and 0-9 are see-through here.
+    const GAP = 10;
+    const I: number[] = Array.from({ length: GAP }, (_, i) => i);
+    const R: number[] = I.map(() => 0), G: number[] = I.map(() => 0), B: number[] = I.map(() => 0), A: number[] = I.map(() => 0);
+    const labels: string[] = I.map(() => "");
     labelToOrgan.current = new Map();
     for (const o of organs.list) {
       for (const v of o.values) {

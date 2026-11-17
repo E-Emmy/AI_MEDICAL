@@ -164,14 +164,15 @@ export default function FullScan({ params }: { params: Promise<{ id: string }> }
               <SeriesFactsList kind={kind} facts={facts} />
               {row && <p className="small muted">Uploaded {fmtDate(row.created_at)}</p>}
             </div>
-            {organList && (
-              <OrganExplorer organs={organList} visible={visibleOrgans} onVisible={setVisibleOrgans} selected={selectedOrgan}
-                onSelect={focusOrgan} hideScan={hideScan} onHideScan={setHideScan} labels={organLabels} onLabels={setOrganLabels} />
-            )}
             <SeriesAnalysis kind={kind} results={results} sample={!!sample} busy={analysing} err={analysisErr} onAnalyse={analyse}
               showFindings={showFindings} onShowFindings={setShowFindings} onFocus={focusOn} onReview={row ? review : undefined} />
             {sample && <Credit sample={sample} />}
             {row && <button className="btn btn-danger" onClick={del} disabled={busy}>{busy ? "Deleting…" : "Delete this full scan"}</button>}
+            {/* Last in the column: it stays in view while scrolling, so nothing may scroll up underneath it. */}
+            {organList && (
+              <OrganExplorer organs={organList} visible={visibleOrgans} onVisible={setVisibleOrgans} selected={selectedOrgan}
+                onSelect={focusOrgan} hideScan={hideScan} onHideScan={setHideScan} labels={organLabels} onLabels={setOrganLabels} />
+            )}
           </aside>
         </div>
       )}

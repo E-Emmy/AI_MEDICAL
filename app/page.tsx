@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useSession } from "@/lib/useSession";
 import DashboardView, { type Row } from "@/components/DashboardView";
+import SectionCards from "@/components/SectionCards";
 import type { Verdict } from "@/lib/analysis";
 
 const MISSING_TABLE = "The analyses table doesn't exist in your Supabase project yet. Run supabase/schema.sql in the Supabase SQL editor, then reload this page.";
@@ -41,5 +42,19 @@ export default function Dashboard() {
     })();
   }, [session]);
 
+  // Opening the site needs no sign-in: visitors see the three sections, and each asks for one when opened.
+  if (!session) {
+    return (
+      <>
+        <div className="page-head">
+          <div>
+            <h1>Welcome to Orbinova Imaging</h1>
+            <p className="lede">AI-assisted reading of medical scans. Choose your section to begin.</p>
+          </div>
+        </div>
+        <SectionCards />
+      </>
+    );
+  }
   return <DashboardView rows={rows} urls={urls} verdicts={verdicts} cases={cases} error={error} />;
 }
