@@ -263,64 +263,73 @@ export default function Upload() {
               </div>
             )}
             {dicom && <DicomFacts info={{ ...dicom.info, frame }} blanked={dicom.blanked} />}
-          </div>
-          <aside className="scan-side">
-            <section className="card">
-              <h2 className="card-title">{busy ? "Analysing…" : "Choose what to run"}</h2>
-              <p className="muted small">
-                {busy
-                  ? chosen
-                    ? `Checking the scan type, then running the ${chosen.name} test. The first run of a test can take up to a minute.`
-                    : "Working out what kind of scan this is, then running every test made for it. This can take up to a minute."
-                  : "Not sure which test you need? Leave it on the first option."}
-              </p>
-              {testsErr && <div className="callout bad" role="alert"><strong>Tests aren&apos;t available</strong>{testsErr}</div>}
-              {!tests && !testsErr && <p className="muted">Loading tests…</p>}
-              {tests && (
-                <fieldset className="tests" disabled={busy}>
-                  <legend className="sr-only">Test to run</legend>
-                  <label className={testId === "auto" ? "test on" : "test"}>
-                    <input type="radio" name="test" value="auto" checked={testId === "auto"} onChange={() => chooseTest("auto")} />
-                    <span>
-                      <strong>Every matching test</strong>
-                      <span className="muted">Checks what kind of scan this is, then runs every test made for it.</span>
-                    </span>
-                  </label>
-                  {groups.map(([scanName, list]) => (
-                    <div key={scanName} className="test-group">
-                      <p className="test-scan">{capital(scanName)}</p>
-                      {list.map((t) => (
-                        <label key={t.id} className={testId === t.id ? "test on" : "test"}>
-                          <input type="radio" name="test" value={t.id} checked={testId === t.id} onChange={() => chooseTest(t.id)} />
-                          <span>
-                            <strong>{t.name}</strong>
-                            <span className="muted">{t.about}</span>
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  ))}
-                </fieldset>
-              )}
-            </section>
-
-            <section className="card">
-              <CasePicker value={caseId} onChange={setCaseId} disabled={busy} label="Patient case (optional)" />
+            {/* The file and what to do with it, under the scan where there's room. */}
+            <section className="card upload-file">
+              <div className="upload-file-head">
+                <dl className="facts">
+                  <div><dt>File</dt><dd>{file?.name}</dd></div>
+                  <div><dt>Size</dt><dd>{file && kb(file.size)}</dd></div>
+                  <div><dt>Format</dt><dd>{file && formatName(file)}</dd></div>
+                  {edits && <div><dt>Edited</dt><dd>{[edits.cropped && "cropped", edits.covered > 0 && `${edits.covered} ${edits.covered === 1 ? "area" : "areas"} covered`].filter(Boolean).join(", ")}</dd></div>}
+                </dl>
+                <div className="upload-file-tools">
+                  <button className="btn btn-quiet btn-sm" disabled={busy} onClick={() => setEditing(true)}>{edits ? "Edit again" : "Crop or cover text"}</button>
+                  <button className="btn btn-quiet btn-sm" disabled={busy} onClick={() => pick(null)}>Choose another file</button>
+                </div>
+              </div>
+              {sample && <p className="known">Sample scan. The dataset labels it <strong>{sample.truth}</strong>.</p>}
               {!sample && !edits && (
                 <p className="fine caution">Names, dates or ID numbers on the image? Use Crop or cover text to remove them before analysing.</p>
               )}
-              {sample && <p className="known">Sample scan. The dataset labels it <strong>{sample.truth}</strong>.</p>}
-              <dl className="facts">
-                <div><dt>File</dt><dd>{file?.name}</dd></div>
-                <div><dt>Size</dt><dd>{file && kb(file.size)}</dd></div>
-                <div><dt>Format</dt><dd>{file && formatName(file)}</dd></div>
-                {edits && <div><dt>Edited</dt><dd>{[edits.cropped && "cropped", edits.covered > 0 && `${edits.covered} ${edits.covered === 1 ? "area" : "areas"} covered`].filter(Boolean).join(", ")}</dd></div>}
-              </dl>
-              {error}
-              <div className="actions">
-                <button className="btn" disabled={busy || !testId} onClick={analyse}>{busy ? "Analysing…" : "Analyse scan"}</button>
-                <button className="btn btn-quiet" disabled={busy} onClick={() => setEditing(true)}>{edits ? "Edit again" : "Crop or cover text"}</button>
-                <button className="btn btn-quiet" disabled={busy} onClick={() => pick(null)}>Choose a different file</button>
+              <CasePicker value={caseId} onChange={setCaseId} disabled={busy} label="Patient case (optional)" />
+            </section>
+          </div>
+          <aside className="scan-side">
+            <section className="card test-picker">
+              <h2 className="card-title">{busy ? "Analysing…" : "Choose a test"}</h2>
+              {testsErr && <div className="callout bad" role="alert"><strong>Tests aren&apos;t available</strong>{testsErr}</div>}
+              {!tests && !testsErr && <p className="muted">Loading tests…</p>}
+              {tests && (
+                <fieldset className="test-chips" disabled={busy}>
+                  <legend className="sr-only">Test to run</legend>
+                  <label className={testId === "auto" ? "test-auto on" : "test-auto"}>
+                    <input type="radio" name="test" value="auto" checked={testId === "auto"} onChange={() => chooseTest("auto")} />
+                    <span><strong>Every matching test</strong><span>Recommended if you&apos;re not sure</span></span>
+                  </label>
+                  {/* The group for the loaded sample's scan type comes first. */}
+                  {[...groups].sort(([, a], [, b]) => Number(!!sample && b.some((t) => t.scan === sample.scan)) - Number(!!sample && a.some((t) => t.scan === sample.scan))).map(([scanName, list]) => {
+                    const here = !!sample && list.some((t) => t.scan === sample.scan);
+                    return (
+                      <div key={scanName} className={here ? "chip-group here" : "chip-group"}>
+                        <p className="test-scan">{capital(scanName)}{here && <span className="chip-tag">This scan</span>}</p>
+                        <div className="chips">
+                          {list.map((t) => (
+                            <label key={t.id} className={testId === t.id ? "chip on" : "chip"}>
+                              <input type="radio" name="test" value={t.id} checked={testId === t.id} onChange={() => chooseTest(t.id)} />
+                              {t.name}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </fieldset>
+              )}
+              {/* The chosen test's description and the button, kept in view while the list scrolls. */}
+              <div className="test-run">
+                <p className="test-about">
+                  {busy
+                    ? chosen
+                      ? `Checking the scan type, then running the ${chosen.name} test. The first run can take up to a minute.`
+                      : "Working out what kind of scan this is, then running every test made for it. This can take up to a minute."
+                    : chosen
+                      ? <><strong>{chosen.name}.</strong> {chosen.about}</>
+                      : "Checks what kind of scan this is, then runs every test made for it."}
+                </p>
+                {error}
+                <button className="btn test-go" disabled={busy || !testId} onClick={analyse}>
+                  {busy ? "Analysing…" : "Analyse scan"}
+                </button>
               </div>
             </section>
           </aside>
