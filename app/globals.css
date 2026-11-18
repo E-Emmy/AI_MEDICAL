@@ -947,6 +947,75 @@ tbody tr:hover {
   margin: -4px 8px 0;
 }
 
+/* Results folded to one line each (scan page with several tests) */
+.fold-intro {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.result.fold {
+  padding: 0;
+  overflow: hidden;
+}
+.fold-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.fold-head:hover { background: var(--surface-2); }
+.fold-name { display: grid; gap: 2px; min-width: 0; }
+.fold-name strong { font-size: 15px; font-weight: 600; }
+.fold-name small { color: var(--muted); font-size: 13px; }
+.result.flagged .fold-name small { color: var(--flag); font-weight: 600; }
+.fold-rev {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+}
+.fold-rev.agree { background: var(--ok-soft); color: var(--ok); }
+.fold-rev.disagree { background: var(--flag-soft); color: var(--flag); }
+.fold-score {
+  font-size: 22px;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.fold-score small { margin-left: 1px; color: var(--muted); font-size: 12px; }
+.fold-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+.result.flagged .fold-dot { background: var(--flag); }
+.fold-chev {
+  color: var(--muted);
+  transition: transform 0.2s;
+}
+.result.fold.open .fold-chev { transform: rotate(180deg); }
+.result.fold.open { border-color: var(--accent); }
+.fold-body {
+  display: grid;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+.fold-body .result-model { margin: 0 0 4px; }
+.fold-body .switch { margin: 0; }
+
 /* One test's result */
 .result {
   padding: 20px;

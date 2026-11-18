@@ -15,32 +15,24 @@ type Props = {
   onHeat: (on: boolean) => void;
   // Omitted when reviews are switched off; read-only on share links.
   review?: { saved?: ReviewRow; onSaved?: (r: ReviewRow) => void };
+  // When given, the card folds down to one line (test, answer, score) and opens on click, so several
+  // results fit on one screen. Without it the card is always open (share links).
+  expanded?: boolean;
+  onToggle?: () => void;
 };
 
-export default function ResultCard({ run: r, heatOn, onHeat, review }: Props) {
+const REVIEWED = { agree: "Agreed", disagree: "Disagreed", unsure: "Unsure" } as const;
+
+export default function ResultCard({ run: r, heatOn, onHeat, review, expanded, onToggle }: Props) {
   const [open, setOpen] = useState(false);
   const top = r.predictions[0];
   const normal = !top || isNormal(top.label);
   const shown = open ? r.predictions : r.predictions.filter((p, i) => i === 0 || p.score >= SHOWN_MIN);
   const hidden = r.predictions.length - shown.length;
-
-  return (
-    <section className={normal ? "result" : "result flagged"} aria-label={`${testName(r)} test`}>
-      <header className="result-head">
-        <div>
-          <h2>{testName(r)}</h2>
-          <p className="result-model">{shortModel(r.model)}</p>
-        </div>
-        {top && <span className="tag">{normal ? "Nothing found" : "Finding"}</span>}
-      </header>
-      {top ? (
-        <p className="verdict">
-          <strong>{labelText(top.label)}</strong>
-          <span className="big-num">{(top.score * 100).toFixed(1)}<small>%</small></span>
-        </p>
-      ) : (
-        <p className="muted">The model returned no findings for this scan.</p>
-      )}
+  const folded = !!onToggle && !expanded;
+  const body = () => (
+    <>
+      {onToggle && <p className="result-model">{shortModel(r.model)}</p>}
       {shown.slice(top ? 1 : 0).map((p) => (
         <div key={p.label} className="finding">
           <div className="finding-row"><span>{labelText(p.label)}</span><span>{pct(p.score)}</span></div>
@@ -81,6 +73,45 @@ export default function ResultCard({ run: r, heatOn, onHeat, review }: Props) {
           {review.saved.note && <> Note: <q>{review.saved.note}</q></>}
         </p>
       )}
+    </>
+  );
+
+  if (onToggle) {
+    const verdict = review?.saved?.verdict;
+    return (
+      <section className={`result fold${normal ? "" : " flagged"}${expanded ? " open" : ""}`} aria-label={`${testName(r)} test`}>
+        <button type="button" className="fold-head" onClick={onToggle} aria-expanded={!!expanded}>
+          <span className="fold-name">
+            <strong>{testName(r)}</strong>
+            <small>{top ? labelText(top.label) : "No result"}{verdict && <em className={`fold-rev ${verdict}`}>{REVIEWED[verdict]}</em>}</small>
+          </span>
+          {top && <span className="fold-score">{(top.score * 100).toFixed(1)}<small>%</small></span>}
+          <span className="fold-dot" role="img" aria-label={normal ? "Nothing found" : "Finding"} title={normal ? "Nothing found" : "Finding"} />
+          <svg className="fold-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+        </button>
+        {!folded && <div className="fold-body">{body()}</div>}
+      </section>
+    );
+  }
+
+  return (
+    <section className={normal ? "result" : "result flagged"} aria-label={`${testName(r)} test`}>
+      <header className="result-head">
+        <div>
+          <h2>{testName(r)}</h2>
+          <p className="result-model">{shortModel(r.model)}</p>
+        </div>
+        {top && <span className="tag">{normal ? "Nothing found" : "Finding"}</span>}
+      </header>
+      {top ? (
+        <p className="verdict">
+          <strong>{labelText(top.label)}</strong>
+          <span className="big-num">{(top.score * 100).toFixed(1)}<small>%</small></span>
+        </p>
+      ) : (
+        <p className="muted">The model returned no findings for this scan.</p>
+      )}
+      {body()}
     </section>
   );
 }

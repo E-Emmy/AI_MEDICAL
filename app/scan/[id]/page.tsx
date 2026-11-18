@@ -14,6 +14,7 @@ import PatientSummary from "@/components/PatientSummary";
 import ShareLink from "@/components/ShareLink";
 import CasePicker from "@/components/CasePicker";
 import DicomFacts from "@/components/DicomFacts";
+import { isNormal } from "@/lib/tests";
 import ZoomView from "@/components/ZoomView";
 
 export default function Scan({ params }: { params: Promise<{ id: string }> }) {
@@ -28,13 +29,17 @@ export default function Scan({ params }: { params: Promise<{ id: string }> }) {
   const [deleting, setDeleting] = useState(false);
   const [deleteErr, setDeleteErr] = useState("");
   const [caseErr, setCaseErr] = useState("");
+  // The one result opened in full; the others stay folded to a line so the page stays short.
+  const [openRun, setOpenRun] = useState<string | null>(null);
 
   useEffect(() => {
     if (!session) return;
     loadScan(id).then((b) => {
       if ("error" in b) return setErr(b.error);
       setBundle(b);
-      setHeatFor(b.runs.find((r) => r.raw?.heatmap)?.id ?? null);
+      const first = b.runs.find((r) => r.raw?.heatmap) ?? null;
+      setHeatFor(first?.id ?? null);
+      setOpenRun(first?.id ?? b.runs[0]?.id ?? null);
     });
   }, [session, id]);
 
@@ -99,6 +104,7 @@ export default function Scan({ params }: { params: Promise<{ id: string }> }) {
           <p className="lede">{lede}</p>
         </div>
         <div className="head-actions">
+          <a className="btn btn-quiet" href="#share-h">Share</a>
           <Link className="btn btn-quiet" href={`/scan/${a.id}/report`}>Report PDF</Link>
           {bundle.case && <Link className="btn btn-quiet" href={`/cases/${bundle.case.id}?compare=${a.id}`}>Compare</Link>}
         </div>
@@ -125,6 +131,7 @@ export default function Scan({ params }: { params: Promise<{ id: string }> }) {
             </label>
           )}
           <PatientSummary runs={runs} reviews={reviews} />
+          {a.raw?.dicom && <DicomFacts info={a.raw.dicom} />}
         </div>
 
         <aside className="scan-side">
@@ -134,8 +141,18 @@ export default function Scan({ params }: { params: Promise<{ id: string }> }) {
               <a href={a.raw.sample.url} target="_blank" rel="noreferrer">{a.raw.sample.source}</a>
             </p>
           )}
+          {runs.length > 1 && (
+            <p className="fold-intro">{runs.filter((r) => r.predictions[0] && !isNormal(r.predictions[0].label)).length} of {runs.length} tests flagged a finding. Tap a test for details and your review.</p>
+          )}
           {runs.map((r) => (
             <ResultCard key={r.id} run={r} heatOn={heatFor === r.id} onHeat={(on) => setHeatFor(on ? r.id : null)}
+              expanded={runs.length === 1 || openRun === r.id}
+              onToggle={runs.length > 1 ? () => {
+                const opening = openRun !== r.id;
+                setOpenRun(opening ? r.id : null);
+                // Opening a result also shows where that model looked.
+                if (opening && r.raw?.heatmap) setHeatFor(r.id);
+              } : undefined}
               review={reviews ? { saved: reviews[r.id], onSaved: (row) => setBundle({ ...bundle, reviews: { ...reviews, [r.id]: row } }) } : undefined} />
           ))}
           <p className="fine">Scores show how confident each model is, not how likely the condition is. A clinician should review every result.</p>
@@ -147,9 +164,7 @@ export default function Scan({ params }: { params: Promise<{ id: string }> }) {
             <CasePicker value={bundle.case?.id ?? null} onChange={moveTo} label="Patient case" />
             {caseErr && <p className="review-err" role="alert">The scan wasn&apos;t moved: {caseErr}</p>}
           </section>
-          {a.raw?.dicom && <DicomFacts info={a.raw.dicom} />}
           <ShareLink imagePath={a.image_path} />
-
           <div className="danger-zone">
             <button type="button" className="btn btn-quiet btn-sm btn-danger" onClick={deleteScan} disabled={deleting}>
               {deleting ? "Deleting…" : "Delete this scan"}
