@@ -94,7 +94,8 @@ export default function OrganExplorer({ organs, visible, onVisible, selected, on
           const on = all.filter((o) => visible.has(o.id)).length;
           return (
             // Groups with nothing switched on start closed, so the parts in the lesson come first.
-            <details key={`${g}-${on > 0 || !!q}`} className="organ-group" open={on > 0 || !!q}>
+            // Tiles: groups with more than four parts span the panel, smaller ones sit two to a row.
+            <details key={`${g}-${on > 0 || !!q}`} className={all.length > 4 ? "organ-group wide" : "organ-group"} open={on > 0 || !!q}>
               <summary>
                 <input type="checkbox" aria-label={`Show all ${g}`} checked={on === all.length}
                   ref={(el) => { if (el) el.indeterminate = on > 0 && on < all.length; }}
@@ -104,11 +105,11 @@ export default function OrganExplorer({ organs, visible, onVisible, selected, on
               </summary>
               <ul>
                 {list.map((o) => (
-                  <li key={o.id} className={o.id === selected ? "on" : undefined}>
+                  // A chip: the coloured dot shows or hides the part, the name opens it.
+                  <li key={o.id} className={[o.id === selected && "on", !visible.has(o.id) && "off"].filter(Boolean).join(" ") || undefined}
+                    style={{ "--c": rgb(o.color) } as React.CSSProperties}>
                     <input type="checkbox" aria-label={`Show ${o.name}`} checked={visible.has(o.id)} onChange={(e) => toggle([o.id], e.target.checked)} />
-                    <span className="swatch" style={{ background: rgb(o.color) }} />
-                    <button type="button" onClick={() => pick(o)}>{o.name}</button>
-                    <span className="organ-ml">{ml(o.ml)}</span>
+                    <button type="button" onClick={() => pick(o)} title={`${o.name}, ${ml(o.ml)}`}>{o.name}</button>
                   </li>
                 ))}
               </ul>

@@ -2582,21 +2582,38 @@ select:focus,
   outline-offset: 1px;
 }
 .organ-scroll {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 8px;
   min-height: 160px;
   overflow-y: auto;
   margin: 0 -8px;
-  padding: 0 8px;
+  padding: 0 8px 2px;
 }
+.organ-scroll > p {
+  grid-column: 1 / -1;
+}
+/* Each group is a tile; its parts are chips that wrap, so the list stays short. */
 .organ-group {
-  border-top: 1px solid var(--line);
+  padding: 2px 10px 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+.organ-group.wide {
+  grid-column: 1 / -1;
+}
+.organ-group:not([open]) {
+  padding-bottom: 2px;
 }
 .organ-group summary {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 0 6px;
+  padding: 8px 0 6px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -2607,43 +2624,68 @@ select:focus,
   font-variant-numeric: tabular-nums;
 }
 .organ-group ul {
-  display: grid;
-  gap: 1px;
-  margin: 0 0 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 .organ-group li {
-  display: grid;
-  grid-template-columns: auto auto 1fr auto;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 2px 8px;
-  border-radius: 8px;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0 10px 0 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
 }
 .organ-group li:hover {
-  background: var(--surface-2);
+  border-color: var(--c);
 }
 .organ-group li.on {
+  border-color: var(--c);
   background: var(--accent-soft);
 }
+.organ-group li.off button {
+  color: var(--muted);
+}
+/* The part's colour as its show/hide switch: filled when shown, a ring when hidden. */
+.organ-group li input {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  border: 2px solid var(--c);
+  border-radius: 50%;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+}
+.organ-group li input:checked {
+  background: var(--c);
+}
+.organ-group li input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 .organ-group li button {
+  overflow: hidden;
   padding: 5px 0;
   border: 0;
   background: none;
   color: var(--ink);
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   cursor: pointer;
 }
 .organ-group li button:hover {
   color: var(--accent);
-}
-.organ-ml {
-  color: var(--muted);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
 }
 /* Phone controls for the panel; hidden on wide screens, where the panel sits in the sidebar. */
 .organ-fab,
@@ -2714,12 +2756,9 @@ select:focus,
   .organ-scroll {
     max-height: none;
   }
-  .organ-group li {
-    padding: 6px 8px;
-  }
   .organ-group li button {
-    padding: 6px 0;
-    font-size: 15px;
+    padding: 8px 0;
+    font-size: 14px;
   }
   /* The floating button that opens it. */
   .organ-fab {

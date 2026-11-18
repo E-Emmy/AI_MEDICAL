@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { Region } from "@/lib/hf";
 import { labelText } from "@/lib/format";
 import type { Heatmap } from "@/lib/tests";
+import { outlines } from "@/lib/contour";
 
 type Corner = "tl" | "tr" | "bl" | "br";
 
@@ -16,7 +17,7 @@ type Props = {
   // Keep the image's own proportions instead of a square thumbnail.
   natural?: boolean;
   scanning?: boolean;
-  // Where the model looked. Thumbnails show only the circle; the soft heat is too small to read there.
+  // Where the model looked. Thumbnails show only the core outline; the soft heat is too small to read there.
   heat?: Heatmap | null;
   heatCircleOnly?: boolean;
   overlays?: Partial<Record<Corner, string>>;
@@ -28,6 +29,11 @@ export default function ScanImage({ src, alt, regions = [], showMarks = true, la
   const img = useRef<HTMLImageElement>(null);
   // React ids contain ":" or "«»", which break url(#id) references in some browsers.
   const blurId = `heat${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  const glowId = `${blurId}glow`;
+  // An outline traced around where the model looked (cells at 75% of the strongest or more), following
+  // the shape of that area rather than marking it with a fixed circle. A wider 50% line was tried and
+  // sprawled across most of the scan.
+  const shapes = useMemo(() => (heat && size.w > 0 ? outlines(heat.grid, 0.75, size.w, size.h) : []), [heat, size.w, size.h]);
 
   // Cached images can finish loading before React attaches onLoad, so measure on mount too.
   useEffect(() => {
@@ -73,12 +79,17 @@ export default function ScanImage({ src, alt, regions = [], showMarks = true, la
               </g>
             </>
           )}
-          {(heat.peaks ?? [{ ...heat.peak, strength: 1 }]).map((p, i) => (
-            <circle key={i} cx={p.x * size.w} cy={p.y * size.h} r={Math.min(size.w, size.h) * 0.11}
-              fill="none" stroke="var(--film-mark)" vectorEffect="non-scaling-stroke"
-              // The strongest area gets the boldest circle.
-              strokeWidth={(heatCircleOnly ? 2 : 3) * (i === 0 ? 1 : 0.7)} opacity={0.5 + p.strength / 2} />
-          ))}
+          <filter id={glowId} x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation={Math.min(size.w, size.h) / 90} result="g" />
+            <feMerge><feMergeNode in="g" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <g filter={`url(#${glowId})`}>
+            {shapes.map((d, i) => (
+              <path key={`c${i}`} d={d} fill="var(--film-mark)" fillOpacity={heatCircleOnly ? 0.12 : 0.1}
+                stroke="var(--film-mark)" strokeWidth={heatCircleOnly ? 1.75 : 2.5} strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke" opacity={i === 0 ? 1 : 0.75} />
+            ))}
+          </g>
         </svg>
       )}
       {(Object.keys(overlays) as Corner[]).map((k) => overlays[k] && <span key={k} className={`ov ${k}`}>{overlays[k]}</span>)}

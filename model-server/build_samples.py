@@ -32,7 +32,7 @@ SOURCES = {
 }
 
 # Row numbers of the parquet-only samples below (see from_rows).
-ROWS = {"chest-xray-tuberculosis": 1700, "chest-xray-covid": 55, "retina-photo-moderate-dr": 12663, "retina-photo-no-dr": 12600,
+ROWS = {"chest-xray-tuberculosis": 1700, "chest-xray-covid": 104, "retina-photo-moderate-dr": 12663, "retina-photo-no-dr": 12600,
         "skin-photo-melanoma": 1201, "skin-photo-nevus": 800, "knee-xray-kl3": 8000, "knee-xray-kl0": 500}
 
 # (sample id, scan type, dataset label, folder in the dataset repo). Chest X-rays come from a
