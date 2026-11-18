@@ -128,6 +128,10 @@ export default function Upload() {
       const r = await fetch(`/samples/${s.file}`);
       if (!r.ok) throw new Error();
       await pick(new File([await r.blob()], s.file, { type: "image/jpeg" }), s);
+      // A test remembered from last time may be for another kind of scan. Switch to one that fits
+      // this sample: its only test, or every matching test when there are several.
+      const fits = (tests ?? []).filter((t) => t.scan === s.scan);
+      if (testId !== "auto" && !fits.some((t) => t.id === testId)) setTestId(fits.length === 1 ? fits[0].id : "auto");
     } catch {
       setErr("The sample couldn't be loaded. Refresh the page and try again.");
     }
@@ -326,6 +330,9 @@ export default function Upload() {
                       ? <><strong>{chosen.name}.</strong> {chosen.about}</>
                       : "Checks what kind of scan this is, then runs every test made for it."}
                 </p>
+                {!busy && sample && chosen && chosen.scan !== sample.scan && (
+                  <p className="fine caution">This sample is a {(SCAN_NAMES[sample.scan] ?? sample.scan).toLowerCase()}, but the {chosen.name} test needs a {chosen.scan_name.toLowerCase()}.</p>
+                )}
                 {error}
                 <button className="btn test-go" disabled={busy || !testId} onClick={analyse}>
                   {busy ? "Analysing…" : "Analyse scan"}
