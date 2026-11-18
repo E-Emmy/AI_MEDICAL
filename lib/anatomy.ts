@@ -15,7 +15,7 @@ export type Topic = {
   lesson: string[];
   // Things to try in the viewer, to make the learner look rather than read.
   tryThis: string[];
-  // Not available yet (shown as "coming later").
+  // Not available yet (shown as "coming soon").
   later?: boolean;
 };
 
@@ -142,6 +142,18 @@ export const TOPICS: Topic[] = [
     system: "Nervous system",
     image: "/anatomy/brain.jpg",
     blurb: "Lobes, ventricles and deep structures.",
+    organs: [],
+    lesson: [],
+    tryThis: [],
+    later: true,
+  },
+  {
+    // Planned: a head-to-thigh CT from the TotalSegmentator dataset (CC BY 4.0), outlined with its "total" task.
+    id: "full-body",
+    title: "The whole body",
+    system: "Full-body CT",
+    image: "/anatomy/hero.jpg",
+    blurb: "Head to thigh in one scan: brain, spine, kidneys, pelvis and the bones and muscles of the legs.",
     organs: [],
     lesson: [],
     tryThis: [],

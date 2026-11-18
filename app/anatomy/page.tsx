@@ -38,7 +38,7 @@ export default function AnatomyLab() {
                 <strong>{t.title}</strong>
                 <span className="topic-blurb">{t.blurb}</span>
                 <span className="topic-foot">
-                  {t.later ? <span className="topic-tag">Coming later</span> : <><span>{parts(t.organs.length)}</span><span className="btn btn-sm topic-btn">Explore in 3D</span></>}
+                  {t.later ? <span className="topic-tag">Coming soon</span> : <><span>{parts(t.organs.length)}</span><span className="btn btn-sm topic-btn">Explore in 3D</span></>}
                 </span>
               </div>
             </>
