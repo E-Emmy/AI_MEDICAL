@@ -27,11 +27,12 @@ SOURCES = {
     "chest-xray-tb": dict(repo="realsudarshan/chest-xray-tb-pneumonia", source="Chest X-ray TB, pneumonia and normal (compiled from public sets)", licence="CC BY 4.0"),
     "retina-photo": dict(repo="bumbledeep/eyepacs", source="EyePACS diabetic retinopathy photos (Kaggle 2015)", licence="MIT (as listed on the Hugging Face copy)"),
     "skin-photo": dict(repo="marmal88/skin_cancer", source="HAM10000 dermatoscopic images (Tschandl et al.)", licence="CC BY-NC 4.0"),
+    "chest-xray-covid": dict(repo="hawking32/covid_chestXray", source="COVID-19, pneumonia and normal chest X-rays (compiled from public sets)", licence="MIT (as listed on the Hugging Face copy)"),
     "knee-xray": dict(repo="SilpaCS/kneeosteoarthritis", source="Knee osteoarthritis severity grading dataset (Chen, from the OAI)", licence="CC BY 4.0"),
 }
 
 # Row numbers of the parquet-only samples below (see from_rows).
-ROWS = {"chest-xray-tuberculosis": 1700, "retina-photo-moderate-dr": 12663, "retina-photo-no-dr": 12600,
+ROWS = {"chest-xray-tuberculosis": 1700, "chest-xray-covid": 55, "retina-photo-moderate-dr": 12663, "retina-photo-no-dr": 12600,
         "skin-photo-melanoma": 1201, "skin-photo-nevus": 800, "knee-xray-kl3": 8000, "knee-xray-kl0": 500}
 
 # (sample id, scan type, dataset label, folder in the dataset repo). Chest X-rays come from a
@@ -47,6 +48,7 @@ WANTED = [
     # These datasets are only parquet files, so samples are picked by row through the datasets server:
     # (split, row number). A fifth item names the SOURCES entry when it isn't the scan type.
     ("chest-xray-tuberculosis", "chest-xray", "Tuberculosis", ("test", ROWS["chest-xray-tuberculosis"]), "chest-xray-tb"),
+    ("chest-xray-covid", "chest-xray", "COVID-19", ("test", ROWS["chest-xray-covid"]), "chest-xray-covid"),
     ("retina-photo-moderate-dr", "retina-photo", "Moderate diabetic retinopathy", ("train", ROWS["retina-photo-moderate-dr"])),
     ("retina-photo-no-dr", "retina-photo", "No diabetic retinopathy", ("train", ROWS["retina-photo-no-dr"])),
     ("skin-photo-melanoma", "skin-photo", "Melanoma", ("test", ROWS["skin-photo-melanoma"])),

@@ -91,7 +91,10 @@ TESTS = {
     "chest-xray-covid": {
         "name": "COVID-19 and pneumonia", "scan": "chest-xray", "scoring": "softmax",
         "model": "GGital/vit-Covid", "revision": "main",
-        "about": "COVID-19, other pneumonia, or normal.",
+        # Tested on 150 X-rays from hawking32/covid_chestXray (50 per class): 149 right, though it may have
+        # been trained on that set. The tuberculosis sample came out COVID at 100%.
+        "about": "COVID-19, other pneumonia, or normal. Only knows these three, so other lung disease such as "
+                 "tuberculosis can show as COVID-19.",
     },
     "chest-xray-14": {
         "name": "14 chest conditions", "scan": "chest-xray", "scoring": "sigmoid",

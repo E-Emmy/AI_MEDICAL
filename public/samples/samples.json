@@ -72,6 +72,15 @@
     "licence": "CC BY 4.0"
   },
   {
+    "id": "chest-xray-covid",
+    "file": "chest-xray-covid.jpg",
+    "scan": "chest-xray",
+    "truth": "COVID-19",
+    "source": "COVID-19, pneumonia and normal chest X-rays (compiled from public sets)",
+    "url": "https://huggingface.co/datasets/hawking32/covid_chestXray",
+    "licence": "MIT (as listed on the Hugging Face copy)"
+  },
+  {
     "id": "retina-photo-moderate-dr",
     "file": "retina-photo-moderate-dr.jpg",
     "scan": "retina-photo",
