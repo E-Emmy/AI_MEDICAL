@@ -152,7 +152,7 @@ export const TOPICS: Topic[] = [
     id: "full-body",
     title: "The whole body",
     system: "Full-body CT",
-    image: "/anatomy/hero.jpg",
+    image: "/anatomy/full-body.jpg",
     blurb: "Head to thigh in one scan: brain, spine, kidneys, pelvis and the bones and muscles of the legs.",
     organs: [],
     lesson: [],
