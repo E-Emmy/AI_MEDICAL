@@ -16,7 +16,7 @@ type Props = {
   // Omitted when reviews are switched off; read-only on share links.
   review?: { saved?: ReviewRow; onSaved?: (r: ReviewRow) => void };
   // When given, the card folds down to one line (test, answer, score) and opens on click, so several
-  // results fit on one screen. Without it the card is always open (share links).
+  // results fit on one screen. Without it the card is always open (a single result).
   expanded?: boolean;
   onToggle?: () => void;
 };

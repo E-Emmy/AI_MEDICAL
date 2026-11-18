@@ -8,6 +8,7 @@ import { floatsFor, leadRun } from "@/components/floats";
 import ResultCard from "@/components/ResultCard";
 import PatientSummary from "@/components/PatientSummary";
 import ZoomView from "@/components/ZoomView";
+import { isNormal } from "@/lib/tests";
 
 // A read-only view of one shared scan. No sign-in; the link itself is the permission.
 export default function Shared({ params }: { params: Promise<{ token: string }> }) {
@@ -15,12 +16,16 @@ export default function Shared({ params }: { params: Promise<{ token: string }> 
   const [bundle, setBundle] = useState<ScanBundle | null>(null);
   const [err, setErr] = useState("");
   const [heatFor, setHeatFor] = useState<string | null>(null);
+  // The one result opened in full; the others stay folded to a line, as on the scan page.
+  const [openRun, setOpenRun] = useState<string | null>(null);
 
   useEffect(() => {
     loadShared(token).then((b) => {
       if ("error" in b) return setErr(b.error);
       setBundle(b);
-      setHeatFor(b.runs.find((r) => r.raw?.heatmap)?.id ?? null);
+      const first = b.runs.find((r) => r.raw?.heatmap) ?? null;
+      setHeatFor(first?.id ?? null);
+      setOpenRun(first?.id ?? b.runs[0]?.id ?? null);
     });
   }, [token]);
 
@@ -52,8 +57,17 @@ export default function Shared({ params }: { params: Promise<{ token: string }> 
           <PatientSummary runs={runs} reviews={reviews} />
         </div>
         <aside className="scan-side">
+          {runs.length > 1 && (
+            <p className="fold-intro">{runs.filter((r) => r.predictions[0] && !isNormal(r.predictions[0].label)).length} of {runs.length} tests flagged a finding. Tap a test for details.</p>
+          )}
           {runs.map((r) => (
-            <ResultCard key={r.id} run={r} heatOn={heatFor === r.id} onHeat={(on) => setHeatFor(on ? r.id : null)} review={{ saved: reviews?.[r.id] }} />
+            <ResultCard key={r.id} run={r} heatOn={heatFor === r.id} onHeat={(on) => setHeatFor(on ? r.id : null)} review={{ saved: reviews?.[r.id] }}
+              expanded={runs.length === 1 || openRun === r.id}
+              onToggle={runs.length > 1 ? () => {
+                const opening = openRun !== r.id;
+                setOpenRun(opening ? r.id : null);
+                if (opening && r.raw?.heatmap) setHeatFor(r.id);
+              } : undefined} />
           ))}
           <p className="fine">Scores show how confident each model is, not how likely the condition is. This is decision support, not a diagnosis.</p>
         </aside>
