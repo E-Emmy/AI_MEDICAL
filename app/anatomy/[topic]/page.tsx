@@ -6,7 +6,6 @@ import OrganExplorer from "@/components/OrganExplorer";
 import { TOPICS, findTopic } from "@/lib/anatomy";
 import { presentOrgans, type OrganStat, type PresentOrgan } from "@/lib/organs";
 import { findSeriesSample } from "@/lib/seriesSamples";
-import { seriesLink } from "@/lib/seriesApi";
 
 const SeriesViewer = dynamic(() => import("@/components/SeriesViewer"), { ssr: false });
 
@@ -16,7 +15,7 @@ const SCAN = findSeriesSample("sample-chest-ct")!;
 export default function AnatomyTopic({ params }: { params: Promise<{ topic: string }> }) {
   const { topic: id } = use(params);
   const topic = findTopic(id);
-  const [url, setUrl] = useState("");
+  const url = SCAN.scan;
   const [err, setErr] = useState("");
   const [list, setList] = useState<PresentOrgan[] | null>(null);
   const [visible, setVisible] = useState<Set<string>>(new Set());
@@ -24,11 +23,6 @@ export default function AnatomyTopic({ params }: { params: Promise<{ topic: stri
   const [hideScan, setHideScan] = useState(true);
   const [labels, setLabels] = useState(true);
   const [focus, setFocus] = useState<{ pos: [number, number, number]; n: number } | null>(null);
-
-  // The sample scan is public data, so it opens with or without an account.
-  useEffect(() => {
-    seriesLink("view", SCAN.key).then((r) => setUrl(r.url!)).catch((e) => setErr(e instanceof Error ? e.message : String(e)));
-  }, []);
 
   useEffect(() => {
     if (!topic) return;

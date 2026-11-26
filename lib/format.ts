@@ -8,3 +8,6 @@ export const labelText = (label: string) =>
 
 // "org/chest-xray-model" reads better as "chest-xray-model" in tight spaces.
 export const shortModel = (model: string) => model.split("/").pop() ?? model;
+
+// Millimetres, to at most two decimals.
+export const mm = (n: number) => (Math.round(n * 100) / 100).toString();

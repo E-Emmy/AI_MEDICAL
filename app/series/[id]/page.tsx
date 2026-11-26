@@ -2,33 +2,21 @@
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { useSession } from "@/lib/useSession";
-import { fmtDate } from "@/lib/format";
-import { KIND_NAMES, type SeriesFacts, type SeriesKind } from "@/lib/series";
+import { KIND_NAMES } from "@/lib/series";
 import SeriesFactsList from "@/components/SeriesFacts";
 import { findSeriesSample, type SeriesSample } from "@/lib/seriesSamples";
-import { SERIES_COLUMNS, SERIES_MISSING, seriesLink, type SeriesRow } from "@/lib/seriesApi";
 import SeriesAnalysis from "@/components/SeriesAnalysis";
 import OrganExplorer from "@/components/OrganExplorer";
 import { presentOrgans, type OrganStat, type PresentOrgan } from "@/lib/organs";
-import { findingPosition, type FlaggedSlice, type SeriesResults, type SeriesReview } from "@/lib/seriesResults";
+import { findingPosition, type FlaggedSlice, type SeriesResults } from "@/lib/seriesResults";
 
 const SeriesViewer = dynamic(() => import("@/components/SeriesViewer"), { ssr: false });
 
+// Only the samples have a page: full scans people open themselves stay in their browser (/series/upload).
 export default function FullScan({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const session = useSession();
-  const router = useRouter();
   const sample = findSeriesSample(id);
-  const [row, setRow] = useState<SeriesRow | null>(null);
-  const [url, setUrl] = useState("");
-  const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
   const [results, setResults] = useState<SeriesResults | null>(null);
-  const [analysing, setAnalysing] = useState(false);
-  const [analysisErr, setAnalysisErr] = useState("");
   const [showFindings, setShowFindings] = useState(true);
   const [focus, setFocus] = useState<{ pos: [number, number, number]; n: number } | null>(null);
   const [organList, setOrganList] = useState<PresentOrgan[] | null>(null);
@@ -43,6 +31,11 @@ export default function FullScan({ params }: { params: Promise<{ id: string }> }
   );
 
   useEffect(() => {
+    if (!sample) return;
+    fetch(sample.results).then((r) => (r.ok ? r.json() : null)).then(setResults).catch(() => {});
+  }, [sample]);
+
+  useEffect(() => {
     if (!sample?.organs) return;
     fetch(`${sample.organs}.organs.json`).then((r) => (r.ok ? r.json() : null)).then((stats: OrganStat[] | null) => {
       if (!stats) return;
@@ -51,51 +44,6 @@ export default function FullScan({ params }: { params: Promise<{ id: string }> }
       setVisibleOrgans(new Set(list.filter((o) => o.group === "Lungs and airway" || o.group === "Heart and blood vessels").map((o) => o.id)));
     }).catch(() => {});
   }, [sample?.organs]);
-
-  useEffect(() => {
-    // Samples are public data and open without an account; your own scans need one.
-    if (!session && !sample) {
-      if (session === null) setErr("Sign in to open your own full scans. The samples open without an account.");
-      return;
-    }
-    (async () => {
-      try {
-        let key = sample?.key;
-        if (!sample) {
-          const { data, error } = await supabase.from("series").select(SERIES_COLUMNS).eq("id", id).maybeSingle();
-          if (error) return setErr(error.code === "PGRST205" ? SERIES_MISSING : error.message);
-          if (!data) return setErr("This full scan doesn't exist, or it isn't yours.");
-          setRow(data as SeriesRow);
-          setResults((data as SeriesRow).results);
-          key = (data as SeriesRow).object_key;
-        } else {
-          fetch(sample.results).then((r) => (r.ok ? r.json() : null)).then(setResults).catch(() => {});
-        }
-        setUrl((await seriesLink("view", key)).url!);
-      } catch (e) {
-        setErr(e instanceof Error ? e.message : String(e));
-      }
-    })();
-  }, [session, id, sample]);
-
-  async function analyse() {
-    setAnalysing(true); setAnalysisErr("");
-    try {
-      const { data } = await supabase.auth.getSession();
-      const res = await fetch("/api/series/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token ?? ""}` },
-        body: JSON.stringify({ id }),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.error ?? "The analysis failed. Try again.");
-      setResults(body.results);
-      setShowFindings(true);
-    } catch (e) {
-      setAnalysisErr(e instanceof Error ? e.message : String(e));
-    }
-    setAnalysing(false);
-  }
 
   function focusOrgan(o: PresentOrgan) {
     setSelectedOrgan(o.id);
@@ -107,79 +55,58 @@ export default function FullScan({ params }: { params: Promise<{ id: string }> }
     if (results) setFocus({ pos: findingPosition(results, f), n: Date.now() });
   }
 
-  async function review(r: SeriesReview) {
-    if (!row || !results) return;
-    const next = { ...results, review: r };
-    const { error } = await supabase.from("series").update({ results: next }).eq("id", row.id);
-    if (error) throw new Error(error.message);
-    setResults(next);
+  if (!sample) {
+    return (
+      <>
+        <header className="scan-head">
+          <p className="crumbs-light"><Link href="/series">Full scans</Link></p>
+          <h1>Full scan</h1>
+        </header>
+        <div className="callout bad" role="alert">
+          <strong>This full scan isn&apos;t available</strong>
+          Full scans are no longer stored online. Open one of the samples, or <Link href="/series/upload">open your own scan</Link> in this browser.
+        </div>
+      </>
+    );
   }
 
-  async function del() {
-    if (!row || !confirm("Delete this full scan? This can't be undone.")) return;
-    setBusy(true);
-    try {
-      await seriesLink("delete", row.object_key);
-      const { error } = await supabase.from("series").delete().eq("id", row.id);
-      if (error) throw new Error(error.message);
-      router.replace("/series");
-    } catch (e) {
-      setBusy(false);
-      setErr(e instanceof Error ? e.message : String(e));
-    }
-  }
-
-  const kind: SeriesKind | undefined = sample?.kind ?? row?.kind;
-  const facts: SeriesFacts | undefined = sample?.facts ?? row?.facts;
-  const title = sample ? `${sample.title} · sample` : row ? row.label || KIND_NAMES[row.kind] : "Full scan";
+  const { kind, facts } = sample;
 
   return (
     <>
       <header className="scan-head">
-        <p className="crumbs-light"><Link href="/series">Full scans</Link> <span aria-hidden="true">/</span> {kind ? KIND_NAMES[kind] : "Scan"}</p>
-        <h1>{title}</h1>
-        {sample && <p className="lede">{sample.finding}.</p>}
-        {kind && facts && (
-          <ul className="scan-tags">
-            <li>{KIND_NAMES[kind]}</li>
-            <li><b>{facts.size[2]}</b> slices</li>
-            <li>{facts.size[0]} × {facts.size[1]} px</li>
-            <li>{facts.spacing.map((v) => Math.round(v * 100) / 100).join(" × ")} mm voxels</li>
-            {results && <li className={results.summary.flagged ? "tag-flag" : "tag-ok"}>{results.summary.flagged ? `${results.summary.flagged} slices flagged` : "No finding"}</li>}
-            {organList && <li className="tag-accent">{organList.length} structures outlined</li>}
-          </ul>
-        )}
+        <p className="crumbs-light"><Link href="/series">Full scans</Link> <span aria-hidden="true">/</span> {KIND_NAMES[kind]}</p>
+        <h1>{sample.title} · sample</h1>
+        <p className="lede">{sample.finding}.</p>
+        <ul className="scan-tags">
+          <li>{KIND_NAMES[kind]}</li>
+          <li><b>{facts.size[2]}</b> slices</li>
+          <li>{facts.size[0]} × {facts.size[1]} px</li>
+          <li>{facts.spacing.map((v) => Math.round(v * 100) / 100).join(" × ")} mm voxels</li>
+          {results && <li className={results.summary.flagged ? "tag-flag" : "tag-ok"}>{results.summary.flagged ? `${results.summary.flagged} slices flagged` : "No finding"}</li>}
+          {organList && <li className="tag-accent">{organList.length} structures outlined</li>}
+        </ul>
       </header>
-      {err && <div className="callout bad" role="alert"><strong>The scan couldn&apos;t be opened</strong>{err}</div>}
 
-      {!err && kind && facts && (
-        <div className="scan-layout series-layout">
-          <div className="scan-main">
-            {url ? (
-              <SeriesViewer url={url} kind={kind} results={results} showFindings={showFindings} focus={focus}
-                organs={organs} onOrganAt={(id) => organs && setSelectedOrgan(id)} />
-            ) : (
-              <div className="viewer-placeholder">Loading scan…</div>
-            )}
-          </div>
-          <aside className="scan-side">
-            <div className="card">
-              <h2 className="card-title">About this scan</h2>
-              <SeriesFactsList kind={kind} facts={facts} />
-              {row && <p className="small muted">Uploaded {fmtDate(row.created_at)}</p>}
-            </div>
-            <SeriesAnalysis kind={kind} results={results} sample={!!sample} busy={analysing} err={analysisErr} onAnalyse={analyse}
-              showFindings={showFindings} onShowFindings={setShowFindings} onFocus={focusOn} onReview={row ? review : undefined} />
-            {sample && <Credit sample={sample} />}
-            {row && <button className="btn btn-danger" onClick={del} disabled={busy}>{busy ? "Deleting…" : "Delete this full scan"}</button>}
-            {/* Last in the column: it stays in view while scrolling, so nothing may scroll up underneath it. */}
-            {organList && (
-              <OrganExplorer organs={organList} visible={visibleOrgans} onVisible={setVisibleOrgans} selected={selectedOrgan}
-                onSelect={focusOrgan} hideScan={hideScan} onHideScan={setHideScan} labels={organLabels} onLabels={setOrganLabels} />
-            )}
-          </aside>
+      <div className="scan-layout series-layout">
+        <div className="scan-main">
+          <SeriesViewer url={sample.scan} kind={kind} results={results} showFindings={showFindings} focus={focus}
+            organs={organs} onOrganAt={(id) => organs && setSelectedOrgan(id)} />
         </div>
-      )}
+        <aside className="scan-side">
+          <div className="card">
+            <h2 className="card-title">About this scan</h2>
+            <SeriesFactsList kind={kind} facts={facts} />
+          </div>
+          <SeriesAnalysis kind={kind} results={results} showFindings={showFindings} onShowFindings={setShowFindings} onFocus={focusOn} />
+          <Credit sample={sample} />
+          {/* Last in the column: it stays in view while scrolling, so nothing may scroll up underneath it. */}
+          {organList && (
+            <OrganExplorer organs={organList} visible={visibleOrgans} onVisible={setVisibleOrgans} selected={selectedOrgan}
+              onSelect={focusOrgan} hideScan={hideScan} onHideScan={setHideScan} labels={organLabels} onLabels={setOrganLabels} />
+          )}
+        </aside>
+      </div>
     </>
   );
 }

@@ -1,5 +1,5 @@
 import { KIND_NAMES, type SeriesFacts, type SeriesKind } from "@/lib/series";
-import { mm } from "@/lib/seriesApi";
+import { mm } from "@/lib/format";
 
 // What is known about a full scan. Never patient details.
 export default function SeriesFactsList({ kind, facts }: { kind: SeriesKind; facts: SeriesFacts }) {

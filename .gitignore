@@ -5,3 +5,5 @@ node_modules
 *.zip
 .DS_Store
 *.tsbuildinfo
+# The sample DICOM folders people can download from /series/upload.
+!public/series-samples/downloads/*.zip

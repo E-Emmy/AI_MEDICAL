@@ -3,29 +3,22 @@ import { useState } from "react";
 import { fmtDate, pct } from "@/lib/format";
 import { capital } from "@/lib/analysis";
 import type { SeriesKind } from "@/lib/series";
-import { SERIES_TEST, type FlaggedSlice, type SeriesResults, type SeriesReview } from "@/lib/seriesResults";
+import { SERIES_TEST, type FlaggedSlice, type SeriesResults } from "@/lib/seriesResults";
 
 type Props = {
   kind: SeriesKind;
   results: SeriesResults | null;
-  // Precomputed results for a sample, rather than an analysis of this person's own scan.
-  sample?: boolean;
-  busy: boolean;
-  err: string;
-  onAnalyse: () => void;
+  // Precomputed results (public/series-samples); live analysis of full scans was removed with the R2 storage.
   showFindings: boolean;
   onShowFindings: (v: boolean) => void;
   onFocus: (f: FlaggedSlice) => void;
-  // Saves a clinician review. Absent for samples, which aren't saved.
-  onReview?: (r: SeriesReview) => Promise<void>;
 };
 
-const VERDICTS: [SeriesReview["verdict"], string][] = [["agree", "Agree"], ["disagree", "Disagree"], ["unsure", "Unsure"]];
 // How the finding is described in the headline, per kind.
 const FINDING: Partial<Record<SeriesKind, string>> = { "brain-mri": "tumour", "chest-ct": "lung cancer" };
 const SHOWN = 8;
 
-export default function SeriesAnalysis({ kind, results, sample, busy, err, onAnalyse, showFindings, onShowFindings, onFocus, onReview }: Props) {
+export default function SeriesAnalysis({ kind, results, showFindings, onShowFindings, onFocus }: Props) {
   const test = SERIES_TEST[kind];
   const [all, setAll] = useState(false);
 
@@ -38,23 +31,11 @@ export default function SeriesAnalysis({ kind, results, sample, busy, err, onAna
     );
   }
 
-  const error = err && <div className="callout bad" role="alert"><strong>The analysis didn&apos;t finish</strong>{err}</div>;
-  const button = (
-    <button className="btn" onClick={onAnalyse} disabled={busy}>
-      {busy ? "Analysing every slice…" : results ? "Run the analysis again" : `Analyse every slice (${test} test)`}
-    </button>
-  );
-
   if (!results) {
     return (
       <div className="card">
         <h2 className="card-title">Analysis</h2>
-        <p className="muted">
-          Runs the {test} test on every axial slice, then marks where the model looked on the slices where it found something.
-        </p>
-        {error}
-        <div className="actions">{button}</div>
-        {busy && <p className="fine">A whole scan takes about a minute, longer if the model server has just started.</p>}
+        <p className="muted">Loading the {test} test results…</p>
       </div>
     );
   }
@@ -113,12 +94,7 @@ export default function SeriesAnalysis({ kind, results, sample, busy, err, onAna
         outline of the finding. {results.skipped > 0 && `${results.skipped} nearly empty slices at the ends were skipped. `}
         Model: {results.model}.
       </p>
-      {sample && results.analysed_at && <p className="fine">Precomputed with the same model on {fmtDate(results.analysed_at)}. Run it again to analyse it live.</p>}
-      {!sample && results.analysed_at && <p className="fine">Analysed {fmtDate(results.analysed_at)}.</p>}
-
-      {onReview && <SeriesReviewBox saved={results.review} onSave={onReview} />}
-      {error}
-      <div className="actions">{button}</div>
+      {results.analysed_at && <p className="fine">Precomputed with the same model on {fmtDate(results.analysed_at)}.</p>}
     </div>
   );
 }
@@ -132,49 +108,4 @@ function mainGroup(flagged: FlaggedSlice[], strongest?: number): [number, number
   for (let k = lo - 1; k >= lo - 6 && k >= 0; k--) if (ks.has(k)) { lo = k; k = lo; }
   for (let k = hi + 1; k <= hi + 6; k++) if (ks.has(k)) { hi = k; k = hi; }
   return [lo, hi];
-}
-
-function SeriesReviewBox({ saved, onSave }: { saved?: SeriesReview; onSave: (r: SeriesReview) => Promise<void> }) {
-  const [verdict, setVerdict] = useState<SeriesReview["verdict"] | null>(saved?.verdict ?? null);
-  const [note, setNote] = useState(saved?.note ?? "");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-  const dirty = verdict !== (saved?.verdict ?? null) || note !== (saved?.note ?? "");
-
-  async function save() {
-    if (!verdict) return;
-    setBusy(true); setErr("");
-    try {
-      await onSave({ verdict, note: note.trim() || undefined, updated_at: new Date().toISOString() });
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
-    }
-    setBusy(false);
-  }
-
-  return (
-    <div className="review">
-      <p className="review-q">Do you agree with this result?</p>
-      <div className="seg" role="radiogroup" aria-label="Your review">
-        {VERDICTS.map(([v, text]) => (
-          <button key={v} type="button" role="radio" aria-checked={verdict === v} onClick={() => setVerdict(v)}>{text}</button>
-        ))}
-      </div>
-      {verdict && (
-        <>
-          <label className="review-note">
-            <span className="muted">Note (optional)</span>
-            <textarea rows={2} maxLength={2000} value={note} onChange={(e) => setNote(e.target.value)}
-              placeholder={verdict === "disagree" ? "What do you see instead?" : "Anything worth recording"} />
-          </label>
-          {err && <p className="review-err" role="alert">The review wasn&apos;t saved: {err}</p>}
-          {dirty ? (
-            <button type="button" className="btn btn-sm" onClick={save} disabled={busy}>{busy ? "Saving…" : saved ? "Update review" : "Save review"}</button>
-          ) : (
-            saved && <p className="muted review-saved">Review saved.</p>
-          )}
-        </>
-      )}
-    </div>
-  );
 }
